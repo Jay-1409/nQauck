@@ -1,0 +1,33 @@
+meta {
+  name: Send Email
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/email/send
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "to": "recipient@example.com",
+    "subject": "Pongpin test email",
+    "htmlTemplate": "<html><body><h1>Hello from Pongpin</h1><p>This email event was queued through RabbitMQ.</p></body></html>"
+  }
+}
+
+vars:pre-request {
+  baseUrl: localhost:8080
+}
+
+tests {
+  test("email request is accepted", function () {
+    expect(res.getStatus()).to.equal(202);
+  });
+}

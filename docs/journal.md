@@ -27,3 +27,6 @@ REDIS_URL=redis://localhost:6379
 ```
 
 i think ill start with what seems the most easiest to me. 
+
+
+

@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  rabbitmq:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: pongpin-rabbitmq:latest
+    container_name: pongpin-rabbitmq
+    restart: unless-stopped
+    ports:
+      - "5672:5672"     # AMQP protocol port for Spring Boot / Java clients
+      - "15672:15672"   # RabbitMQ Management Web UI (http://localhost:15672)
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
