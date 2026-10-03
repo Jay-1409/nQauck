@@ -1,4 +1,4 @@
-package QueueAdaptor.RMQ.tut1;
+package org.example.QueueAdaptor.RMQ.tut1;
 
 import org.springframework.amqp.core.Binding;
 import org.springframework.amqp.core.BindingBuilder;

@@ -1,4 +1,4 @@
-package QueueAdaptor.RMQ.tut1;
+package org.example.QueueAdaptor.RMQ.tut1;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
