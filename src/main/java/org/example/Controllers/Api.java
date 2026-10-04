@@ -1,7 +1,8 @@
 package org.example.Controllers;
 
-import org.example.Services.EmailService;
-import org.example.Services.EmailService.EmailRequest;
+import org.example.Services.MessagePublisherService;
+import org.example.Entities.EmailRequest;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -12,15 +13,19 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/email")
 public class Api {
 
-    private final EmailService emailService;
+    private final MessagePublisherService messagePublisher;
+    private final String emailRoutingKey;
 
-    public Api(EmailService emailService) {
-        this.emailService = emailService;
+    public Api(
+            MessagePublisherService messagePublisher,
+            @Value("${app.rabbitmq.queues.email.routing-key}") String emailRoutingKey) {
+        this.messagePublisher = messagePublisher;
+        this.emailRoutingKey = emailRoutingKey;
     }
 
     @PostMapping("/send")
     public ResponseEntity<Void> sendEmail(@RequestBody EmailRequest request) {
-        emailService.sendEmail(request);
+        messagePublisher.publish(emailRoutingKey, request);
         return ResponseEntity.accepted().build();
     }
 }
