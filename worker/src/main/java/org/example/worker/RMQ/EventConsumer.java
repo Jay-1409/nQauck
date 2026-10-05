@@ -10,7 +10,7 @@ public class EventConsumer {
 
     private static final Logger logger = LoggerFactory.getLogger(EventConsumer.class);
 
-    @RabbitListener(queues = "email.queue")
+    @RabbitListener(queues = "${app.rabbitmq.queues.email.name:email.queue}")
     public void consume(String event) {
         logger.info("Received event from email.queue: {}", event);
     }

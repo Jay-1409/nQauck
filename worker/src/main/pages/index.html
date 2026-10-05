@@ -33,6 +33,8 @@
     select { width: 100%; padding: 12px 14px; border: 1px solid #dce4dd; border-radius: 8px; background: #fff; color: #17211d; font: inherit; font-size: 13px; outline: none; }
     select:focus { border-color: #62a879; box-shadow: 0 0 0 3px #62a87924; }
     .hint { margin: 9px 0 0; color: #89948d; font-size: 11px; }
+    .actions { display: flex; align-items: center; gap: 14px; margin-top: 20px; }
+    button { padding: 11px 15px; border: 0; border-radius: 8px; background: #2f7548; color: white; font: inherit; font-size: 13px; font-weight: 650; cursor: pointer; }
     @media (max-width: 680px) {
       .shell { grid-template-columns: 1fr; }
       aside { padding: 16px 20px; }
@@ -53,22 +55,25 @@
     <main>
       <p class="eyebrow">Pongpin worker</p>
       <h1>Worker dashboard</h1>
-      <p class="intro">The worker consumes events from the configured message queue.</p>
+      <p class="intro">Choose a queue provider and download the worker configuration.</p>
       <section class="card" aria-labelledby="queue-title">
         <div class="card-heading">
           <span class="icon" aria-hidden="true">⇄</span>
           <div>
             <h2 id="queue-title">Queue consumer</h2>
-            <p>Queue configuration used by this worker instance.</p>
+            <p>Generate an application.yml for the selected provider.</p>
           </div>
         </div>
         <label for="queue-provider">Provider</label>
-        <select id="queue-provider" name="queue-provider" disabled>
-          <option value="RMQ" selected>RabbitMQ (RMQ)</option>
-          <option value="SQS">Amazon SQS</option>
-          <option value="KAFKA">Apache Kafka</option>
-        </select>
-        <p class="hint">Listening queue: <strong>email.queue</strong></p>
+        <form action="/config.yml" method="get">
+          <select id="queue-provider" name="provider">
+            <option value="RABBITMQ" selected>RabbitMQ (RMQ)</option>
+            <option value="KAFKA">Apache Kafka</option>
+            <option value="SQS">Amazon SQS</option>
+          </select>
+          <p class="hint">RabbitMQ works today. Kafka and SQS configuration is generated for future worker support.</p>
+          <div class="actions"><button type="submit">Generate application.yml</button></div>
+        </form>
       </section>
     </main>
   </div>
