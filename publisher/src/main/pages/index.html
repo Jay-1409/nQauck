@@ -15,31 +15,51 @@
     body { margin: 0; min-height: 100vh; }
     .shell { display: grid; grid-template-columns: 240px 1fr; min-height: 100vh; }
     aside { padding: 30px 20px; background: #172d26; color: #f4f8f5; }
-    .brand { display: flex; align-items: center; gap: 11px; margin: 0 0 60px 8px; font-size: 20px; font-weight: 700; letter-spacing: -.04em; }
+    .brand { display: flex; align-items: center; gap: 11px; margin: 0 0 42px 8px; font-size: 20px; font-weight: 700; letter-spacing: -.04em; }
     .brand-mark { display: grid; width: 32px; height: 32px; place-items: center; border-radius: 10px; background: #a9e2bd; color: #172d26; font-size: 17px; }
     .nav-label { margin: 0 0 12px 10px; color: #91a99d; font-size: 10px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
-    .nav-item { padding: 11px 12px; border-radius: 9px; color: #e1ebe5; font-size: 13px; }
-    .nav-item.active { background: #29463b; color: #c0f0cd; }
+    .nav-label { margin: 0 0 12px 8px; color: #91a99d; font-size: 10px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+    .tree-group { margin-bottom: 8px; }
+    .tree-parent, .tree-child { display: block; width: 100%; border: 0; background: transparent; color: #e1ebe5; text-align: left; cursor: pointer; }
+    .tree-parent { padding: 10px 12px; border-radius: 8px; font: inherit; font-size: 13px; font-weight: 650; }
+    .tree-parent:hover, .tree-parent.active { background: #29463b; color: #c0f0cd; }
+    .tree-children { margin: 3px 0 8px 21px; padding: 0 0 0 10px; border-left: 1px solid #496357; list-style: none; }
+    .tree-child { padding: 8px 10px; border-radius: 7px; color: #b9c9c0; font: inherit; font-size: 12px; }
+    .tree-child:hover, .tree-child.active { background: #213b31; color: #c0f0cd; }
     main { width: min(100%, 960px); padding: 58px 64px; }
     .eyebrow { margin: 0 0 10px; color: #56876b; font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
     h1 { margin: 0; font-size: clamp(28px, 4vw, 38px); letter-spacing: -.045em; }
     .intro { margin: 12px 0 34px; color: #68766e; font-size: 14px; line-height: 1.6; }
-    .card { max-width: 650px; padding: 28px; border: 1px solid #e3e9e4; border-radius: 14px; background: #fff; box-shadow: 0 8px 30px #20392d0a; }
+    .card { max-width: 760px; padding: 28px; border: 1px solid #e3e9e4; border-radius: 14px; background: #fff; box-shadow: 0 8px 30px #20392d0a; }
     .card-heading { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 24px; }
     .icon { display: grid; flex: 0 0 40px; height: 40px; place-items: center; border-radius: 11px; background: #e9f5ec; color: #3c8055; font-size: 19px; }
     h2 { margin: 1px 0 5px; font-size: 16px; }
     .card-heading p { margin: 0; color: #77837b; font-size: 12px; line-height: 1.5; }
     label { display: block; margin-bottom: 8px; font-size: 12px; font-weight: 650; }
     select { width: 100%; padding: 12px 14px; border: 1px solid #dce4dd; border-radius: 8px; background: #fff; color: #17211d; font: inherit; font-size: 13px; outline: none; }
+    input[type="text"], input[type="email"], input[type="password"], input[type="number"] { width: 100%; padding: 12px 14px; border: 1px solid #dce4dd; border-radius: 8px; background: #fff; color: #17211d; font: inherit; font-size: 13px; outline: none; }
     select:focus { border-color: #62a879; box-shadow: 0 0 0 3px #62a87924; }
+    input:focus { border-color: #62a879; box-shadow: 0 0 0 3px #62a87924; }
     .hint { margin: 9px 0 0; color: #89948d; font-size: 11px; }
-    .actions { margin-top: 20px; }
+    .actions { display: flex; justify-content: space-between; gap: 12px; margin-top: 20px; }
     button { padding: 11px 15px; border: 0; border-radius: 8px; background: #2f7548; color: white; font: inherit; font-size: 13px; font-weight: 650; cursor: pointer; }
+    button.secondary { background: #e9f0eb; color: #29463b; }
+    fieldset { min-width: 0; padding: 0; border: 0; }
+    h3 { margin: 0 0 7px; font-size: 18px; }
+    .section-intro { margin: 0 0 22px; color: #77837b; font-size: 12px; line-height: 1.5; }
+    .field { margin-bottom: 18px; }
+    .check { display: flex; align-items: center; gap: 9px; margin: 14px 0; font-size: 12px; }
+    .check input { accent-color: #2f7548; }
     @media (max-width: 680px) {
       .shell { grid-template-columns: 1fr; }
       aside { padding: 16px 20px; }
       .brand { margin: 0; }
-      .nav-label, .nav-item { display: none; }
+      .nav-label { display: none; }
+      .tree { display: flex; gap: 8px; overflow-x: auto; }
+      .tree-group { flex: 0 0 auto; }
+      .tree-children { display: flex; margin: 2px 0 0; padding: 0; border: 0; }
+      .tree-parent { width: auto; white-space: nowrap; }
+      .tree-child { white-space: nowrap; }
       main { padding: 38px 20px; }
       .card { padding: 22px; }
     }
@@ -49,33 +69,139 @@
   <div class="shell">
     <aside>
       <div class="brand"><span class="brand-mark">P</span> pongpin</div>
-      <p class="nav-label">Workspace</p>
-      <div class="nav-item active">System setup</div>
+      <p class="nav-label">Configuration</p>
+      <nav class="tree" aria-label="Configuration sections">
+        <div class="tree-group">
+          <button class="tree-parent active" type="button" data-panel="queue">Queue</button>
+          <ul class="tree-children">
+            <li><button class="tree-child active" type="button" data-panel="queue" data-provider="RABBITMQ">RabbitMQ</button></li>
+            <li><button class="tree-child" type="button" data-panel="queue" data-provider="KAFKA">Kafka</button></li>
+            <li><button class="tree-child" type="button" data-panel="queue" data-provider="SQS">SQS</button></li>
+          </ul>
+        </div>
+        <div class="tree-group">
+          <button class="tree-parent" type="button" data-panel="email">Email delivery</button>
+          <ul class="tree-children">
+            <li><button class="tree-child" type="button" data-panel="email">SMTP</button></li>
+          </ul>
+        </div>
+        <div class="tree-group">
+          <button class="tree-parent" type="button" data-panel="review">Review &amp; generate</button>
+        </div>
+      </nav>
     </aside>
     <main>
       <p class="eyebrow">Configuration</p>
       <h1>Set up your system</h1>
-      <p class="intro">Choose the queue provider Pongpin should use to deliver messages.</p>
+      <p class="intro">Configure queue and email delivery from the sections in the left panel.</p>
       <section class="card" aria-labelledby="queue-title">
         <div class="card-heading">
           <span class="icon" aria-hidden="true">⇄</span>
           <div>
-            <h2 id="queue-title">Queue provider</h2>
-            <p>Select the messaging system configured for your environment.</p>
+            <h2 id="queue-title">Worker configuration</h2>
+            <p>Set up the services the worker will use, then generate its YAML.</p>
           </div>
         </div>
-        <form action="/config.yml" method="get">
-          <label for="queue-provider">Provider</label>
-          <select id="queue-provider" name="provider">
-            <option value="RABBITMQ">RabbitMQ (RMQ)</option>
-            <option value="KAFKA">Apache Kafka</option>
-            <option value="SQS">Amazon SQS</option>
-          </select>
-          <p class="hint">Download the worker configuration for your selected provider.</p>
-          <div class="actions"><button type="submit">Generate application.yml</button></div>
+        <form id="config-form" action="/config.yml" method="post" novalidate>
+          <section class="config-panel" id="panel-queue">
+            <h3>Queue provider</h3>
+            <p class="section-intro">Choose which queue the worker should consume from.</p>
+            <div class="field">
+              <label for="queue-provider">Queue provider</label>
+              <select id="queue-provider" name="provider" required>
+                <option value="RABBITMQ">RabbitMQ</option>
+                <option value="KAFKA">Apache Kafka</option>
+                <option value="SQS">Amazon SQS</option>
+              </select>
+            </div>
+            <p class="hint">RabbitMQ is currently the only worker queue adapter implemented.</p>
+            <div class="actions"><span></span><button type="button" data-panel="email">Email delivery</button></div>
+          </section>
+
+          <section class="config-panel" id="panel-email" hidden>
+            <h3>Email delivery</h3>
+            <p class="section-intro">Configure the SMTP relay that sends the worker’s email.</p>
+            <div class="field">
+              <label for="smtp-host">SMTP host</label>
+              <input id="smtp-host" name="smtpHost" type="text" placeholder="smtp.example.com" required>
+            </div>
+            <div class="field">
+              <label for="smtp-port">SMTP port</label>
+              <input id="smtp-port" name="smtpPort" type="number" min="1" max="65535" value="587" required>
+            </div>
+            <div class="field">
+              <label for="from-email">Default sender address</label>
+              <input id="from-email" name="fromEmail" type="email" placeholder="notifications@example.com" required>
+            </div>
+            <label class="check"><input id="smtp-auth" name="smtpAuth" type="checkbox" value="true" checked> SMTP authentication</label>
+            <div class="field">
+              <label for="smtp-username">SMTP username</label>
+              <input id="smtp-username" name="smtpUsername" type="text" autocomplete="username" required>
+            </div>
+            <div class="field">
+              <label for="smtp-password">SMTP password</label>
+              <input id="smtp-password" name="smtpPassword" type="password" autocomplete="new-password" required>
+            </div>
+            <label class="check"><input name="smtpStarttls" type="checkbox" value="true" checked> Use STARTTLS</label>
+            <p class="hint">The SMTP password is included in the downloaded YAML. Keep that file private.</p>
+            <div class="actions">
+              <button class="secondary" type="button" data-panel="queue">Queue</button>
+              <button type="button" data-panel="review">Review</button>
+            </div>
+          </section>
+
+          <section class="config-panel" id="panel-review" hidden>
+            <h3>Review configuration</h3>
+            <p class="section-intro">Check the selected providers before downloading the worker YAML.</p>
+            <p>Queue: <strong id="review-queue"></strong></p>
+            <p>Email: SMTP at <strong id="review-smtp"></strong></p>
+            <p>Default sender: <strong id="review-from"></strong></p>
+            <p class="hint">The generated file contains SMTP credentials. Store it securely.</p>
+            <div class="actions">
+              <button class="secondary" type="button" data-panel="email">Email delivery</button>
+              <button type="submit">Generate application.yml</button>
+            </div>
+          </section>
         </form>
       </section>
     </main>
   </div>
+  <script>
+    const auth = document.getElementById('smtp-auth');
+    const username = document.getElementById('smtp-username');
+    const password = document.getElementById('smtp-password');
+    const panels = [...document.querySelectorAll('.config-panel')];
+    const navItems = [...document.querySelectorAll('.tree [data-panel]')];
+    function openPanel(name) {
+      panels.forEach(panel => panel.hidden = panel.id !== `panel-${name}`);
+      navItems.forEach(item => item.classList.toggle('active', item.dataset.panel === name &&
+        (!item.dataset.provider || item.dataset.provider === document.getElementById('queue-provider').value)));
+      if (name === 'review') {
+        const provider = document.getElementById('queue-provider');
+        document.getElementById('review-queue').textContent = provider.options[provider.selectedIndex].text;
+        document.getElementById('review-smtp').textContent = document.getElementById('smtp-host').value || 'not configured';
+        document.getElementById('review-from').textContent = document.getElementById('from-email').value || 'not configured';
+      }
+    }
+    document.querySelectorAll('[data-panel]').forEach(item => item.addEventListener('click', () => {
+      if (item.dataset.provider) document.getElementById('queue-provider').value = item.dataset.provider;
+      openPanel(item.dataset.panel);
+    }));
+    document.getElementById('queue-provider').addEventListener('change', () => openPanel('queue'));
+    auth.addEventListener('change', () => {
+      username.required = auth.checked;
+      password.required = auth.checked;
+    });
+    document.getElementById('config-form').addEventListener('submit', event => {
+      const queue = document.getElementById('queue-provider');
+      const emailFields = ['smtp-host', 'smtp-port', 'from-email', ...(auth.checked ? ['smtp-username', 'smtp-password'] : [])];
+      const invalid = [queue, ...emailFields.map(id => document.getElementById(id))].find(field => !field.checkValidity());
+      if (invalid) {
+        event.preventDefault();
+        openPanel(invalid === queue ? 'queue' : 'email');
+        invalid.reportValidity();
+      }
+    });
+  </script>
 </body>
 </html>
