@@ -29,4 +29,12 @@ REDIS_URL=redis://localhost:6379
 i think ill start with what seems the most easiest to me. 
 
 
+## 5-OCT-2026
+
+### 20:49
+Today i have done some good progress on this, i have managed to get the dashboard working and the idea is that after the user 
+chooses the configurations that they need, like choosing RMQ..., a YAML file is being generated which will be then required by each 
+of the workers in order to know information of the queue. All the workers just need to be given this YAML and they should know exactly what they have to do.
+
+
 
