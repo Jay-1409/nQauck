@@ -10,7 +10,7 @@ public class QueueAdapterSelector {
     private final QueueAdapter activeAdapter;
 
     public QueueAdapterSelector(
-            @Value("${app.queue.provider:RABBITMQ}") QueueProvider provider,
+            @Value("${app.queue.provider}") QueueProvider provider,
             List<QueueAdapter> adapters) {
         activeAdapter = adapters.stream()
                 .filter(adapter -> adapter.provider() == provider)

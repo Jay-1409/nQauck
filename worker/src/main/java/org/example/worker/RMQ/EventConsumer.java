@@ -1,15 +1,19 @@
 package org.example.worker.RMQ;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.example.worker.entities.EmailRequest;
+import org.example.worker.services.EmailService;
 import org.springframework.stereotype.Component;
 
 @Component
 public class EventConsumer {
 
-    private static final Logger logger = LoggerFactory.getLogger(EventConsumer.class);
+    private final EmailService emailService;
 
-    public void consume(String event) {
-        logger.info("Received event: {}", event);
+    public EventConsumer(EmailService emailService) {
+        this.emailService = emailService;
+    }
+
+    public void consume(EmailRequest event) {
+        emailService.send(event);
     }
 }

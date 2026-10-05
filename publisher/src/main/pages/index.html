@@ -33,6 +33,8 @@
     select { width: 100%; padding: 12px 14px; border: 1px solid #dce4dd; border-radius: 8px; background: #fff; color: #17211d; font: inherit; font-size: 13px; outline: none; }
     select:focus { border-color: #62a879; box-shadow: 0 0 0 3px #62a87924; }
     .hint { margin: 9px 0 0; color: #89948d; font-size: 11px; }
+    .actions { margin-top: 20px; }
+    button { padding: 11px 15px; border: 0; border-radius: 8px; background: #2f7548; color: white; font: inherit; font-size: 13px; font-weight: 650; cursor: pointer; }
     @media (max-width: 680px) {
       .shell { grid-template-columns: 1fr; }
       aside { padding: 16px 20px; }
@@ -62,12 +64,16 @@
             <p>Select the messaging system configured for your environment.</p>
           </div>
         </div>
-        <label for="queue-provider">Provider</label>
-        <select id="queue-provider" name="queue-provider">
-          <option value="RMQ">RabbitMQ (RMQ)</option>
-          <option value="SQS">Amazon SQS</option>
-          <option value="KAFKA">Apache Kafka</option>
-        </select>
+        <form action="/config.yml" method="get">
+          <label for="queue-provider">Provider</label>
+          <select id="queue-provider" name="provider">
+            <option value="RABBITMQ">RabbitMQ (RMQ)</option>
+            <option value="KAFKA">Apache Kafka</option>
+            <option value="SQS">Amazon SQS</option>
+          </select>
+          <p class="hint">Download the worker configuration for your selected provider.</p>
+          <div class="actions"><button type="submit">Generate application.yml</button></div>
+        </form>
       </section>
     </main>
   </div>
