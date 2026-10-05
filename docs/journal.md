@@ -36,5 +36,4 @@ Today i have done some good progress on this, i have managed to get the dashboar
 chooses the configurations that they need, like choosing RMQ..., a YAML file is being generated which will be then required by each 
 of the workers in order to know information of the queue. All the workers just need to be given this YAML and they should know exactly what they have to do.
 
-
-
+we can use mailpit for simulating an smtp server.
