@@ -1,4 +1,4 @@
-package org.example.worker;
+package org.example.worker.RMQ;
 
 import org.springframework.amqp.core.Queue;
 import org.springframework.context.annotation.Bean;

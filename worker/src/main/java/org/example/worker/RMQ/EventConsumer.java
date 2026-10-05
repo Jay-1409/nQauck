@@ -1,4 +1,4 @@
-package org.example.worker;
+package org.example.worker.RMQ;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
