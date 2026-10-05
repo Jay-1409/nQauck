@@ -15,15 +15,12 @@ public class QueueConfigController {
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=application.yml")
                 .contentType(MediaType.parseMediaType("application/yaml"))
-                .body(provider.yaml());
+                .body(yaml(provider));
     }
 
-    enum QueueProvider {
-        RABBITMQ, KAFKA, SQS;
-
-        String yaml() {
-            return switch (this) {
-                case RABBITMQ -> """
+    private String yaml(QueueProvider provider) {
+        return switch (provider) {
+            case RABBITMQ -> """
                         spring:
                           rabbitmq:
                             host: ${RABBITMQ_HOST:localhost}
@@ -37,24 +34,23 @@ public class QueueConfigController {
                             queues:
                               email:
                                 name: email.queue
-                        """;
-                case KAFKA -> """
+                    """;
+            case KAFKA -> """
                         app:
                           queue:
                             provider: KAFKA
                             kafka:
                               bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
                               topic: ${KAFKA_TOPIC:email.queue}
-                        """;
-                case SQS -> """
+                    """;
+            case SQS -> """
                         app:
                           queue:
                             provider: SQS
                             sqs:
                               region: ${AWS_REGION:ap-south-1}
                               queue-url: ${SQS_QUEUE_URL:}
-                        """;
-            };
-        }
+                    """;
+        };
     }
 }
