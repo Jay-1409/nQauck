@@ -1,36 +1,33 @@
 # Nquack
 
-> A small service for submitting and delivering HTML email.
+> Queue-backed email delivery with a dashboard for configuring publishers and workers.
 
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](./LICENSE)
-![Version: 1.0-SNAPSHOT](https://img.shields.io/badge/version-1.0--SNAPSHOT-blue)
-![Primary language: Java](https://img.shields.io/badge/primary%20language-Java-blue)
 
-## What's in it for you
+## Project at a glance
 
-- Send HTML emails through one HTTP request.
-- Configure SMTP from a browser dashboard.
-- Preview locally captured messages with Mailpit.
-- Add worker instances to increase delivery capacity.
+| Measure | Current implementation |
+| --- | --- |
+| Deployable applications | 2: publisher and worker |
+| Email submission endpoints | 1: `POST /api/email/send` |
+| Implemented queue adapters | 1: RabbitMQ |
+| RabbitMQ topology | 1 durable direct exchange, 1 durable email queue |
+| Worker instances | Multiple can consume from the same queue |
 
-## Features
+## What it does
 
-- First-run dashboard account setup and login.
-- Stepwise setup for queue and SMTP settings.
-- Encrypted local dashboard configuration and BCrypt-hashed login passwords.
-- Worker configuration YAML generation.
-- Email submission API with asynchronous delivery.
-- RabbitMQ is supported today. Kafka and SQS are listed in the dashboard as future options; their worker adapters are not implemented yet.
+The publisher accepts an email request over HTTP and publishes it to RabbitMQ. One or more workers consume the request and send it through the configured SMTP server. The dashboard stores queue and SMTP settings and generates the worker's `application.yml`.
 
-## Quick Start
+The API returns `202 Accepted` after publishing the request. This confirms queue acceptance; it does not confirm SMTP delivery.
 
-Requirements: Java 21, Maven, and Docker.
+## Quick start
 
-Start RabbitMQ and Mailpit:
+Requirements: Java 21, Maven, and Docker. Configure an SMTP server you can access before sending real messages.
+
+Start RabbitMQ:
 
 ```sh
 docker compose -f publisher/src/main/java/org/example/QueueAdaptor/RMQ/docker-compose.yml up -d
-docker run -d --name pongpin-mailpit -p 1025:1025 -p 8025:8025 axllent/mailpit:latest
 ```
 
 Start the publisher:
@@ -39,44 +36,45 @@ Start the publisher:
 mvn -pl publisher spring-boot:run
 ```
 
-Open [http://localhost:8081](http://localhost:8081) and create a dashboard account. Create a private location for the generated file:
+Open [http://localhost:8081](http://localhost:8081), set the dashboard password on first launch, then configure RabbitMQ and SMTP. Download the generated worker YAML to a private location outside the repository:
 
 ```sh
 mkdir -p "$HOME/.pongpin"
 chmod 700 "$HOME/.pongpin"
 ```
 
-Configure SMTP with host `localhost`, port `1025`, authentication off, and STARTTLS off. Generate the worker YAML and save it outside the repository as:
-
-```text
-$HOME/.pongpin/worker-application.yml
-```
-
-Restrict access to the downloaded file:
+Save the downloaded file as `$HOME/.pongpin/worker-application.yml`, then restrict access to it:
 
 ```sh
 chmod 600 "$HOME/.pongpin/worker-application.yml"
 ```
 
-In another terminal, start the worker:
+Start a worker with that configuration:
 
 ```sh
 SPRING_CONFIG_ADDITIONAL_LOCATION="file:$HOME/.pongpin/worker-application.yml" mvn -pl worker spring-boot:run
 ```
 
-Submit a test email:
+Submit an email:
 
 ```sh
 curl -X POST http://localhost:8081/api/email/send \
   -H 'Content-Type: application/json' \
-  -d '{"to":"test@example.com","subject":"Pongpin test","htmlTemplate":"<p>Hello from Pongpin.</p>"}'
+  -d '{"to":"person@example.com","subject":"Hello","htmlTemplate":"<p>Hello from Nquack.</p>"}'
 ```
 
-The API returns `202 Accepted` when the publisher accepts the request. View the captured message at [http://localhost:8025](http://localhost:8025).
+Run another worker process to add another consumer of the RabbitMQ queue.
+
+## Current scope
+
+- RabbitMQ is the only implemented queue adapter. Kafka and SQS are shown as configuration options, but their worker adapters are not implemented.
+- Queue priority routing is not implemented.
+- SMTP delivery errors currently requeue the RabbitMQ message indefinitely; there is no dead-letter queue or retry backoff yet.
+- `POST /api/email/send` does not require dashboard authentication. See the [API reference](./docs/api.md) for request and response details.
 
 ## Documentation
 
-- [Architecture](./docs/architecture.md)
+- [Architecture and message flow](./docs/architecture.md)
 - [HTTP API](./docs/api.md)
 
 ## License
