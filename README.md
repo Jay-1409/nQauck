@@ -1,4 +1,4 @@
-# Pongpin
+# Nquack
 
 > A small service for submitting and delivering HTML email.
 
