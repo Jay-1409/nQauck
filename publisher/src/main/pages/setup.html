@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pongpin · Create dashboard account</title>
+  <style>
+    :root { font-family: Inter, ui-sans-serif, system-ui, sans-serif; color: #17211d; background: #f4f6f3; }
+    * { box-sizing: border-box; }
+    body { min-height: 100vh; margin: 0; display: grid; place-items: center; padding: 24px; }
+    main { width: min(100%, 440px); padding: 32px; border: 1px solid #e3e9e4; border-radius: 14px; background: white; }
+    h1 { margin: 0 0 8px; font-size: 25px; }
+    p { color: #68766e; font-size: 14px; line-height: 1.5; }
+    label { display: block; margin: 18px 0 7px; font-size: 13px; font-weight: 650; }
+    input { width: 100%; padding: 12px 14px; border: 1px solid #dce4dd; border-radius: 8px; font: inherit; }
+    button { width: 100%; margin-top: 22px; padding: 12px; border: 0; border-radius: 8px; background: #2f7548; color: white; font: inherit; font-weight: 650; cursor: pointer; }
+    #message { min-height: 20px; color: #a33; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Create your dashboard account</h1>
+    <p>Set the username and password you’ll use to sign in to Pongpin.</p>
+    <form id="setup-form" action="/setup" method="post">
+      <label for="username">Username</label>
+      <input id="username" name="username" type="text" autocomplete="username" maxlength="64" required>
+      <label for="password">Password</label>
+      <input id="password" name="password" type="password" autocomplete="new-password" minlength="12" required>
+      <label for="confirm-password">Confirm password</label>
+      <input id="confirm-password" name="confirmPassword" type="password" autocomplete="new-password" minlength="12" required>
+      <p>Password must be at least 12 characters.</p>
+      <p id="message" role="alert"></p>
+      <button type="submit">Create account</button>
+    </form>
+  </main>
+  <script>
+    const form = document.getElementById('setup-form');
+    form.addEventListener('submit', async event => {
+      event.preventDefault();
+      const message = document.getElementById('message');
+      message.textContent = '';
+      try {
+        const csrf = await fetch('/csrf').then(response => response.json());
+        const response = await fetch(form.action, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded', [csrf.headerName]: csrf.token },
+          body: new URLSearchParams(new FormData(form))
+        });
+        if (!response.ok) throw new Error(await response.text());
+        window.location.assign('/login?setup=complete');
+      } catch (error) {
+        message.textContent = error.message || 'Could not create the account.';
+      }
+    });
+  </script>
+</body>
+</html>

@@ -143,7 +143,7 @@
               <input id="smtp-password" name="smtpPassword" type="password" autocomplete="new-password" required>
             </div>
             <label class="check"><input name="smtpStarttls" type="checkbox" value="true" checked> Use STARTTLS</label>
-            <p class="hint">The SMTP password is included in the downloaded YAML. Keep that file private.</p>
+            <p class="hint" id="smtp-password-hint">The SMTP password is encrypted on this device and included in the downloaded YAML. Keep that file private.</p>
             <div class="actions">
               <button class="secondary" type="button" data-panel="queue">Queue</button>
               <button type="button" data-panel="review">Review</button>
@@ -170,6 +170,7 @@
     const auth = document.getElementById('smtp-auth');
     const username = document.getElementById('smtp-username');
     const password = document.getElementById('smtp-password');
+    let smtpPasswordConfigured = false;
     const panels = [...document.querySelectorAll('.config-panel')];
     const navItems = [...document.querySelectorAll('.tree [data-panel]')];
     function openPanel(name) {
@@ -190,9 +191,32 @@
     document.getElementById('queue-provider').addEventListener('change', () => openPanel('queue'));
     auth.addEventListener('change', () => {
       username.required = auth.checked;
-      password.required = auth.checked;
+      password.required = auth.checked && !smtpPasswordConfigured;
     });
-    document.getElementById('config-form').addEventListener('submit', event => {
+    fetch('/config.yml', { headers: { Accept: 'application/json' } }).then(response => {
+      if (response.status === 204) return null;
+      if (!response.ok) throw new Error('Could not load saved configuration');
+      return response.json();
+    }).then(config => {
+      if (!config) return;
+      document.getElementById('queue-provider').value = config.provider;
+      document.getElementById('smtp-host').value = config.smtpHost;
+      document.getElementById('smtp-port').value = config.smtpPort;
+      document.getElementById('from-email').value = config.fromEmail;
+      auth.checked = config.smtpAuth;
+      document.querySelector('[name="smtpStarttls"]').checked = config.smtpStarttls;
+      username.value = config.smtpUsername || '';
+      smtpPasswordConfigured = config.smtpPasswordConfigured;
+      username.required = auth.checked;
+      password.required = auth.checked && !smtpPasswordConfigured;
+      if (smtpPasswordConfigured) {
+        password.placeholder = 'Saved securely; leave blank to keep it';
+        document.getElementById('smtp-password-hint').textContent =
+          'A saved password is encrypted on this device. Leave the field blank to keep it, or enter a new one.';
+      }
+    }).catch(error => console.error(error));
+    document.getElementById('config-form').addEventListener('submit', async event => {
+      const form = event.currentTarget;
       const queue = document.getElementById('queue-provider');
       const emailFields = ['smtp-host', 'smtp-port', 'from-email', ...(auth.checked ? ['smtp-username', 'smtp-password'] : [])];
       const invalid = [queue, ...emailFields.map(id => document.getElementById(id))].find(field => !field.checkValidity());
@@ -200,6 +224,28 @@
         event.preventDefault();
         openPanel(invalid === queue ? 'queue' : 'email');
         invalid.reportValidity();
+        return;
+      }
+      event.preventDefault();
+      try {
+        const csrf = await fetch('/csrf').then(response => {
+          if (!response.ok) throw new Error('Could not get a security token');
+          return response.json();
+        });
+        const response = await fetch(form.action, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded', [csrf.headerName]: csrf.token },
+          body: new URLSearchParams(new FormData(form))
+        });
+        if (!response.ok) throw new Error((await response.text()) || 'Could not save configuration');
+        const download = document.createElement('a');
+        const url = URL.createObjectURL(await response.blob());
+        download.href = url;
+        download.download = 'application.yml';
+        download.click();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      } catch (error) {
+        alert(error.message);
       }
     });
   </script>

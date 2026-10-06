@@ -1,15 +1,14 @@
 package org.example;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.core.userdetails.User;
-import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
+import org.example.Security.DashboardAccountStore;
 
 @Configuration
 public class SecurityConfig {
@@ -19,21 +18,21 @@ public class SecurityConfig {
         return http
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/**").permitAll()
+                        .requestMatchers("/", "/setup", "/setup.html", "/csrf").permitAll()
                         .anyRequest().authenticated())
-                .csrf(csrf -> csrf.ignoringRequestMatchers("/api/**", "/config.yml"))
+                .csrf(csrf -> csrf.ignoringRequestMatchers("/api/**"))
                 .formLogin(form -> form.defaultSuccessUrl("/index.html", true))
                 .build();
     }
 
     @Bean
-    UserDetailsService userDetailsService(
-            @Value("${app.dashboard.username}") String username,
-            @Value("${app.dashboard.password}") String password,
-            PasswordEncoder passwordEncoder) {
-        return new InMemoryUserDetailsManager(User.withUsername(username)
-                .password(passwordEncoder.encode(password))
+    InMemoryUserDetailsManager userDetailsService(DashboardAccountStore accountStore) {
+        var users = new InMemoryUserDetailsManager();
+        accountStore.load().ifPresent(account -> users.createUser(User.withUsername(account.username())
+                .password(account.passwordHash())
                 .roles("USER")
-                .build());
+                .build()));
+        return users;
     }
 
     @Bean
