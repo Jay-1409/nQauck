@@ -35,11 +35,7 @@ public class EmailService {
         } catch (MessagingException exception) {
             throw new MailPreparationException("Could not prepare email", exception);
         }
-        System.out.println("event captured by worker");
-
-
-        // uncomment later
-        //mailSender.send(message);
+        mailSender.send(message);
     }
 
     private boolean isBlank(String value) {

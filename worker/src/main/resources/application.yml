@@ -4,6 +4,17 @@ spring:
     port: ${RABBITMQ_PORT:5672}
     username: ${RABBITMQ_USERNAME:guest}
     password: ${RABBITMQ_PASSWORD:guest}
+  mail:
+    host: 'http://localhost'
+    port: 1010
+    username: 'jay_shah@outlook.in'
+    password: 'jXte2YGDy:4v2bN'
+    properties:
+      "[mail.smtp.auth]": true
+      "[mail.smtp.starttls.enable]": true
+      "[mail.smtp.connectiontimeout]": 5000
+      "[mail.smtp.timeout]": 3000
+      "[mail.smtp.writetimeout]": 5000
 app:
   queue:
     provider: RABBITMQ
@@ -11,3 +22,5 @@ app:
     queues:
       email:
         name: email.queue
+  email:
+    from: 'jay_shah@outlook.in'
