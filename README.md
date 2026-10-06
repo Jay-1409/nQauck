@@ -1,4 +1,4 @@
-# Nquack
+# nQuack
 
 > Queue-backed email delivery with a dashboard for configuring publishers and workers.
 
@@ -76,6 +76,7 @@ Run another worker process to add another consumer of the RabbitMQ queue.
 
 - [Architecture and message flow](./docs/architecture.md)
 - [HTTP API](./docs/api.md)
+- [Load benchmarking tool](./benchmark/README.md)
 
 ## License
 
