@@ -24,7 +24,6 @@ public class RabbitMqQueueAdapter implements QueueAdapter {
 
     @RabbitListener(queues = "${app.rabbitmq.queues.email.name}")
     public void receive(EmailRequest event) {
-        // ponytail: SMTP failures requeue indefinitely; add backoff and a DLQ before production traffic.
         eventConsumer.consume(event);
     }
 }

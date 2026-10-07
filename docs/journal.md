@@ -39,3 +39,25 @@ of the workers in order to know information of the queue. All the workers just n
 we can use mailpit for simulating an smtp server. -> this was cool
 
 
+## 7-OCT-2026
+
+### 16:01
+
+I have some ideas for the stats that we caould show in the dashboard. 
+
+Area              Possible statistics                                                           Data needed                                                                
+━━━━━━━━━━━━━━━━  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Queue             Messages waiting, unacknowledged messages, publish rate, delivery rate,       RabbitMQ Management API. These are also the metrics the benchmark already
+active consumers                                                              samples.
+────────────────  ────────────────────────────────────────────────────────────────────────────  ────────────────────────────────────────────────────────────────────────────
+Publisher         Requests accepted, failed requests, acceptance rate, response latency         Add counters and latency tracking to the publisher. 202 Accepted only
+(p50/p95/p99)                                                                 means the message was queued.
+────────────────  ────────────────────────────────────────────────────────────────────────────  ────────────────────────────────────────────────────────────────────────────
+Workers           Active consumers, messages processed per second, processing latency,          RabbitMQ can report consumer count; throughput and health need worker
+worker health                                                                 instrumentation.
+────────────────  ────────────────────────────────────────────────────────────────────────────  ────────────────────────────────────────────────────────────────────────────
+Email delivery    Emails sent, send failures, retries, SMTP response time, most recent error    Add delivery counters and status reporting in the worker.
+────────────────  ────────────────────────────────────────────────────────────────────────────  ────────────────────────────────────────────────────────────────────────────
+System health     Publisher/worker/broker availability, uptime, CPU and memory use              Health checks; CPU and memory require runtime or host metrics.
+
+
