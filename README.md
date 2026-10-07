@@ -1,6 +1,6 @@
 # nQuack
 
-> A high-throughput notification delivery with a dashboard for configuring publishers and workers.
+> A highly configurable high-throughput notification delivery system. 
 
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](./LICENSE)
 
