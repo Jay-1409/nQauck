@@ -228,13 +228,19 @@ func validate(opt options) error {
 func checkServices(client *http.Client, opt options) []string {
 	var missing []string
 	fmt.Println("Checking required services...")
-	request, err := http.NewRequest(http.MethodHead, opt.endpoint, nil)
+	request, err := http.NewRequest(http.MethodOptions, opt.endpoint, nil)
 	if err == nil {
 		var response *http.Response
-		response, err = client.Do(request)
+		probeClient := *client
+		probeClient.CheckRedirect = func(_ *http.Request, _ []*http.Request) error {
+			return http.ErrUseLastResponse
+		}
+		response, err = probeClient.Do(request)
 		if response != nil {
 			response.Body.Close()
-			if response.StatusCode >= http.StatusInternalServerError {
+			if response.StatusCode >= http.StatusMultipleChoices && response.StatusCode < http.StatusBadRequest {
+				err = fmt.Errorf("redirected to %s (publisher endpoint may require authentication)", response.Header.Get("Location"))
+			} else if response.StatusCode >= http.StatusBadRequest {
 				err = fmt.Errorf("HTTP %s", response.Status)
 			}
 		}

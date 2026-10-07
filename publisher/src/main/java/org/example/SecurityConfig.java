@@ -17,6 +17,7 @@ public class SecurityConfig {
     SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         return http
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/api/email/send").permitAll()
                         .requestMatchers("/api/statistics/**").authenticated()
                         .requestMatchers("/api/**").permitAll()
                         .requestMatchers("/", "/setup", "/setup.html", "/csrf").permitAll()
