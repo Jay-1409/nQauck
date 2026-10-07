@@ -51,7 +51,7 @@ Queue             Messages waiting, unacknowledged messages, publish rate, deliv
 active consumers                                                              samples.
 ────────────────  ────────────────────────────────────────────────────────────────────────────  ────────────────────────────────────────────────────────────────────────────
 Publisher         Requests accepted, failed requests, acceptance rate, response latency         Add counters and latency tracking to the publisher. 202 Accepted only
-(p50/p95/p99)                                                                 means the message was queued.
+(p50/p95/p99)      means the message was queued.
 ────────────────  ────────────────────────────────────────────────────────────────────────────  ────────────────────────────────────────────────────────────────────────────
 Workers           Active consumers, messages processed per second, processing latency,          RabbitMQ can report consumer count; throughput and health need worker
 worker health                                                                 instrumentation.
