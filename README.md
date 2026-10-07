@@ -1,6 +1,6 @@
 # nQuack
 
-> Queue-backed email delivery with a dashboard for configuring publishers and workers.
+> Queue-backed notification delivery with a dashboard for configuring publishers and workers.
 
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](./LICENSE)
 
