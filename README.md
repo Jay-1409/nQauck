@@ -76,8 +76,11 @@ Run another worker process to add another consumer of the RabbitMQ queue.
 
 - [Architecture and message flow](./docs/architecture.md)
 - [HTTP API](./docs/api.md)
-- [Load benchmarking tool](./benchmark/README.md)
 
 ## License
 
 Licensed under the [Apache License 2.0](./LICENSE).
+
+## Benchmarking
+
+See the [benchmarking guide](./benchmark/README.md) to run load tests.
