@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Pongpin · System setup</title>
+  <title>Pongpin · Dashboard</title>
   <style>
     :root {
       color-scheme: light;
@@ -50,6 +50,27 @@
     .field { margin-bottom: 18px; }
     .check { display: flex; align-items: center; gap: 9px; margin: 14px 0; font-size: 12px; }
     .check input { accent-color: #2f7548; }
+    .stats-toolbar { display: flex; align-items: center; justify-content: space-between; margin: 18px 0; color: #68766e; font-size: 12px; }
+    .stats-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; max-width: 760px; }
+    .stat-card { padding: 22px; border: 1px solid #e3e9e4; border-radius: 12px; background: #fff; }
+    .stat-label { margin: 0 0 12px; color: #68766e; font-size: 12px; }
+    .stat-value { margin: 0; font-size: clamp(24px, 4vw, 32px); font-weight: 700; letter-spacing: -.04em; }
+    .chart-stack { display: grid; gap: 14px; max-width: 760px; margin-top: 18px; }
+    .chart-card { padding: 22px; border: 1px solid #e3e9e4; border-radius: 12px; background: #fff; }
+    .chart-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+    .chart-heading h2 { margin: 0 0 5px; }
+    .chart-heading p { margin: 0; color: #77837b; font-size: 11px; }
+    .chart-legend { display: flex; flex-wrap: wrap; gap: 14px; margin: 16px 0 0; color: #68766e; font-size: 11px; }
+    .legend-item { display: inline-flex; align-items: center; gap: 6px; }
+    .legend-mark { width: 9px; height: 9px; border-radius: 50%; }
+    .chart-svg { display: block; width: 100%; height: auto; margin-top: 8px; overflow: visible; }
+    .chart-grid { stroke: #e8ede9; stroke-width: 1; }
+    .chart-label { fill: #89948d; font: 10px Inter, ui-sans-serif, system-ui, sans-serif; }
+    .chart-series { fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+    .stats-message { min-height: 20px; margin: 18px 0 6px; color: #68766e; font-size: 12px; }
+    .stats-message.error { color: #a33a32; }
+    .stats-sampled { margin: 0; color: #89948d; font-size: 11px; }
+    #configuration-nav[hidden] { display: none; }
     @media (max-width: 680px) {
       .shell { grid-template-columns: 1fr; }
       aside { padding: 16px 20px; }
@@ -57,11 +78,13 @@
       .nav-label { display: none; }
       .tree { display: flex; gap: 8px; overflow-x: auto; }
       .tree-group { flex: 0 0 auto; }
+      #configuration-nav { display: flex; gap: 8px; }
       .tree-children { display: flex; margin: 2px 0 0; padding: 0; border: 0; }
       .tree-parent { width: auto; white-space: nowrap; }
       .tree-child { white-space: nowrap; }
       main { padding: 38px 20px; }
       .card { padding: 22px; }
+      .stats-grid { grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -69,8 +92,10 @@
   <div class="shell">
     <aside>
       <div class="brand"><span class="brand-mark">P</span> pongpin</div>
-      <p class="nav-label">Configuration</p>
-      <nav class="tree" aria-label="Configuration sections">
+      <p class="nav-label">Workspace</p>
+      <nav class="tree" aria-label="Dashboard sections">
+        <button class="tree-parent active" type="button" data-view="configuration">Configuration</button>
+        <div id="configuration-nav">
         <div class="tree-group">
           <button class="tree-parent active" type="button" data-panel="queue">Queue</button>
           <ul class="tree-children">
@@ -88,9 +113,12 @@
         <div class="tree-group">
           <button class="tree-parent" type="button" data-panel="review">Review &amp; generate</button>
         </div>
+        </div>
+        <button class="tree-parent" type="button" data-view="statistics">Statistics</button>
       </nav>
     </aside>
     <main>
+      <div id="configuration-view">
       <p class="eyebrow">Configuration</p>
       <h1>Set up your system</h1>
       <p class="intro">Configure queue and email delivery from the sections in the left panel.</p>
@@ -164,6 +192,50 @@
           </section>
         </form>
       </section>
+      </div>
+      <section id="statistics-view" hidden>
+        <p class="eyebrow">Statistics</p>
+        <h1>Queue health</h1>
+        <p class="intro">Live queue metrics from the configured provider.</p>
+        <div class="stats-toolbar">
+          <span id="stats-provider">Provider: —</span>
+          <button class="secondary" id="refresh-stats" type="button">Refresh</button>
+        </div>
+        <div class="stats-grid">
+          <article class="stat-card"><p class="stat-label">Messages waiting</p><p class="stat-value" id="messages-waiting">—</p></article>
+          <article class="stat-card"><p class="stat-label">Unacknowledged</p><p class="stat-value" id="messages-unacknowledged">—</p></article>
+          <article class="stat-card"><p class="stat-label">Publish rate</p><p class="stat-value" id="publish-rate">—</p></article>
+          <article class="stat-card"><p class="stat-label">Delivery rate</p><p class="stat-value" id="delivery-rate">—</p></article>
+        </div>
+        <div class="chart-stack">
+          <section class="chart-card" aria-labelledby="queue-chart-title">
+            <div class="chart-heading">
+              <div><h2 id="queue-chart-title">Queue depth</h2><p>Waiting and unacknowledged messages · recent five minutes</p></div>
+            </div>
+            <div class="chart-legend" aria-hidden="true">
+              <span class="legend-item"><i class="legend-mark" style="background:#2f7548"></i>Waiting</span>
+              <span class="legend-item"><i class="legend-mark" style="background:#d48a36"></i>Unacknowledged</span>
+            </div>
+            <svg id="queue-chart" class="chart-svg" viewBox="0 0 720 250" role="img" aria-label="Queue depth history">
+              <text x="360" y="125" text-anchor="middle" class="chart-label">Waiting for first sample</text>
+            </svg>
+          </section>
+          <section class="chart-card" aria-labelledby="throughput-chart-title">
+            <div class="chart-heading">
+              <div><h2 id="throughput-chart-title">Throughput</h2><p>Published and delivered messages per second · recent five minutes</p></div>
+            </div>
+            <div class="chart-legend" aria-hidden="true">
+              <span class="legend-item"><i class="legend-mark" style="background:#386fc4"></i>Published</span>
+              <span class="legend-item"><i class="legend-mark" style="background:#9b59a3"></i>Delivered</span>
+            </div>
+            <svg id="throughput-chart" class="chart-svg" viewBox="0 0 720 250" role="img" aria-label="Queue throughput history">
+              <text x="360" y="125" text-anchor="middle" class="chart-label">Waiting for first sample</text>
+            </svg>
+          </section>
+        </div>
+        <p class="stats-message" id="stats-message" role="status" aria-live="polite"></p>
+        <p class="stats-sampled" id="stats-sampled"></p>
+      </section>
     </main>
   </div>
   <script>
@@ -173,7 +245,16 @@
     let smtpPasswordConfigured = false;
     const panels = [...document.querySelectorAll('.config-panel')];
     const navItems = [...document.querySelectorAll('.tree [data-panel]')];
+    const viewItems = [...document.querySelectorAll('.tree [data-view]')];
+    const configurationView = document.getElementById('configuration-view');
+    const configurationNav = document.getElementById('configuration-nav');
+    const statisticsView = document.getElementById('statistics-view');
+    let activePanel = 'queue';
+    let statsTimer;
+    const queueHistory = [];
     function openPanel(name) {
+      activePanel = name;
+      openView('configuration');
       panels.forEach(panel => panel.hidden = panel.id !== `panel-${name}`);
       navItems.forEach(item => item.classList.toggle('active', item.dataset.panel === name &&
         (!item.dataset.provider || item.dataset.provider === document.getElementById('queue-provider').value)));
@@ -184,6 +265,108 @@
         document.getElementById('review-from').textContent = document.getElementById('from-email').value || 'not configured';
       }
     }
+    function openView(name) {
+      const showStatistics = name === 'statistics';
+      configurationView.hidden = showStatistics;
+      configurationNav.hidden = showStatistics;
+      statisticsView.hidden = !showStatistics;
+      viewItems.forEach(item => item.classList.toggle('active', item.dataset.view === name));
+      if (showStatistics) {
+        refreshQueueStats();
+        if (!statsTimer) statsTimer = setInterval(refreshQueueStats, 5000);
+      } else if (statsTimer) {
+        clearInterval(statsTimer);
+        statsTimer = null;
+      }
+    }
+    async function refreshQueueStats() {
+      const message = document.getElementById('stats-message');
+      message.textContent = 'Refreshing queue statistics…';
+      message.classList.remove('error');
+      try {
+        const response = await fetch('/api/statistics/queue', { headers: { Accept: 'application/json' } });
+        if (response.redirected) throw new Error('Sign in to view queue statistics.');
+        if (!response.ok) throw new Error(`Statistics unavailable (HTTP ${response.status})`);
+        const stats = await response.json();
+        const sampledAt = Date.parse(stats.sampledAt) || Date.now();
+        queueHistory.push({
+          sampledAt,
+          waiting: Number(stats.messagesWaiting) || 0,
+          unacknowledged: Number(stats.messagesUnacknowledged) || 0,
+          published: Number(stats.publishRatePerSecond) || 0,
+          delivered: Number(stats.deliveryRatePerSecond) || 0
+        });
+        while (queueHistory.length > 60 || queueHistory[0].sampledAt < sampledAt - 5 * 60 * 1000) queueHistory.shift();
+        const count = value => value == null ? '—' : new Intl.NumberFormat().format(value);
+        const rate = value => value == null ? '—' : `${new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 }).format(value)} msg/s`;
+        document.getElementById('stats-provider').textContent = `Provider: ${stats.provider} · Queue: ${stats.queueName}`;
+        document.getElementById('messages-waiting').textContent = count(stats.messagesWaiting);
+        document.getElementById('messages-unacknowledged').textContent = count(stats.messagesUnacknowledged);
+        document.getElementById('publish-rate').textContent = rate(stats.publishRatePerSecond);
+        document.getElementById('delivery-rate').textContent = rate(stats.deliveryRatePerSecond);
+        document.getElementById('stats-sampled').textContent = `Updated ${new Date(stats.sampledAt).toLocaleTimeString()}`;
+        renderLineChart('queue-chart', queueHistory, [
+          { key: 'waiting', color: '#2f7548' },
+          { key: 'unacknowledged', color: '#d48a36' }
+        ], true);
+        renderLineChart('throughput-chart', queueHistory, [
+          { key: 'published', color: '#386fc4' },
+          { key: 'delivered', color: '#9b59a3' }
+        ], false);
+        message.textContent = 'Live queue statistics';
+      } catch (error) {
+        ['stats-provider', 'messages-waiting', 'messages-unacknowledged', 'publish-rate', 'delivery-rate', 'stats-sampled']
+          .forEach(id => document.getElementById(id).textContent = '—');
+        message.textContent = error.message;
+        message.classList.add('error');
+      }
+    }
+    function renderLineChart(id, points, series, integerAxis) {
+      const svg = document.getElementById(id);
+      const width = 720, height = 250;
+      const margin = { top: 14, right: 12, bottom: 34, left: 48 };
+      const plotWidth = width - margin.left - margin.right;
+      const plotHeight = height - margin.top - margin.bottom;
+      const values = points.flatMap(point => series.map(item => point[item.key]));
+      const maximum = Math.max(0, ...values);
+      const ceiling = integerAxis ? Math.max(4, Math.ceil(maximum / 4) * 4) : maximum === 0 ? 1 : maximum * 1.1;
+      const firstTime = points[0]?.sampledAt ?? 0;
+      const lastTime = points.at(-1)?.sampledAt ?? firstTime;
+      const x = index => points.length < 2 || firstTime === lastTime
+        ? margin.left + plotWidth
+        : margin.left + ((points[index].sampledAt - firstTime) / (lastTime - firstTime)) * plotWidth;
+      const y = value => margin.top + plotHeight - (value / ceiling) * plotHeight;
+      const make = (tag, attributes, text) => {
+        const element = document.createElementNS('http://www.w3.org/2000/svg', tag);
+        Object.entries(attributes).forEach(([name, value]) => element.setAttribute(name, value));
+        if (text != null) element.textContent = text;
+        svg.appendChild(element);
+        return element;
+      };
+      svg.replaceChildren();
+      for (let tick = 0; tick <= 4; tick++) {
+        const value = ceiling * tick / 4;
+        const position = y(value);
+        make('line', { x1: margin.left, x2: width - margin.right, y1: position, y2: position, class: 'chart-grid' });
+        make('text', { x: margin.left - 8, y: position + 4, 'text-anchor': 'end', class: 'chart-label' },
+          new Intl.NumberFormat(undefined, { maximumFractionDigits: integerAxis ? 0 : 1 }).format(value));
+      }
+      if (!points.length) {
+        make('text', { x: width / 2, y: height / 2, 'text-anchor': 'middle', class: 'chart-label' }, 'Waiting for first sample');
+        return;
+      }
+      series.forEach(item => {
+        const path = points.map((point, index) => `${index ? 'L' : 'M'} ${x(index)} ${y(point[item.key])}`).join(' ');
+        if (points.length > 1) make('path', { d: path, stroke: item.color, class: 'chart-series' });
+        make('circle', { cx: x(points.length - 1), cy: y(points.at(-1)[item.key]), r: 4, fill: item.color });
+      });
+      [...new Set([0, Math.floor((points.length - 1) / 2), points.length - 1])].forEach(index => {
+        const label = new Date(points[index].sampledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        make('text', { x: x(index), y: height - 8, 'text-anchor': index === 0 ? 'start' : index === points.length - 1 ? 'end' : 'middle', class: 'chart-label' }, label);
+      });
+    }
+    viewItems.forEach(item => item.addEventListener('click', () => openView(item.dataset.view)));
+    document.getElementById('refresh-stats').addEventListener('click', refreshQueueStats);
     document.querySelectorAll('[data-panel]').forEach(item => item.addEventListener('click', () => {
       if (item.dataset.provider) document.getElementById('queue-provider').value = item.dataset.provider;
       openPanel(item.dataset.panel);
