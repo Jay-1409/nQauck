@@ -1,0 +1,1 @@
+- need to add email validation before we send the email event into the queue
