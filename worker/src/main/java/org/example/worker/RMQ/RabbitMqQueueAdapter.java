@@ -23,7 +23,12 @@ public class RabbitMqQueueAdapter implements QueueAdapter {
         return QueueProvider.RABBITMQ;
     }
 
-    @RabbitListener(queues = "${app.rabbitmq.queues.email.name}")
+    @RabbitListener(queues = {
+            "${app.rabbitmq.queues.email.name}",
+            "${app.rabbitmq.queues.priority.high}",
+            "${app.rabbitmq.queues.priority.medium}",
+            "${app.rabbitmq.queues.priority.low}"
+    })
     public void receive(EmailRequest event) {
         eventConsumer.consume(event);
     }

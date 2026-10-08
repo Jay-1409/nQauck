@@ -1,8 +1,8 @@
 # How does the priority based scheduling work
 
 ## RabbitMQ
-- We have an 3 queue setup, starting from the high priority events going into the Q_0 and the low priority events going into Q_1, Q_3 handled the medium priority events.
-- The priority of an event/message has to be defined by the sender as a part of the payload.
+- We have a fixed 3 queue setup: high priority events go to Q_0, medium to Q_1, and low to Q_2.
+- The sender can set the `priority` payload field to `HIGH`, `MEDIUM`, or `LOW` to route an event to its queue.
 
 ### The high level design would look like
 

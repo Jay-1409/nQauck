@@ -15,13 +15,14 @@ Request content type: `application/json`
 | `to` | string | Yes | Recipient email address. |
 | `subject` | string | Yes | Email subject. |
 | `htmlTemplate` | string | Yes | HTML body of the email. |
+| `priority` | enum | No | `HIGH`, `MEDIUM`, or `LOW`; routes to the corresponding priority queue. Omit it to use the legacy `email.queue`. |
 
 Example:
 
 ```sh
 curl -i -X POST http://localhost:8081/api/email/send \
   -H 'Content-Type: application/json' \
-  -d '{"to":"person@example.com","subject":"Welcome","htmlTemplate":"<h1>Hello</h1>"}'
+  -d '{"to":"person@example.com","subject":"Welcome","htmlTemplate":"<h1>Hello</h1>","priority":"HIGH"}'
 ```
 
 | Response | Meaning |
