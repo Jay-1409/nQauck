@@ -157,11 +157,7 @@
             <p class="hint">RabbitMQ is currently the only worker queue adapter implemented.</p>
             <div id="rabbitmq-priority-options">
               <label class="check"><input id="priority-scheduling" name="priorityScheduling" type="checkbox" value="true"> Enable priority scheduling</label>
-              <div class="field">
-                <label for="priority-sequence">Queue sequence</label>
-                <textarea id="priority-sequence" name="prioritySequence" rows="2" placeholder="email.high.queue, email.high.queue, email.low.queue"></textarea>
-              </div>
-              <p class="hint">Enter queue names in processing order. Repeated names get a larger share, and the sequence repeats.</p>
+              <p class="hint">Fixed cycle: 0, 0, 0, 0, 1, 1, 2. Level 0 is high, 1 is medium, and 2 is low.</p>
             </div>
             <div class="actions"><span></span><button type="button" data-panel="email">Email delivery</button></div>
           </section>
@@ -300,7 +296,7 @@
         document.getElementById('review-smtp').textContent = document.getElementById('smtp-host').value || 'not configured';
         document.getElementById('review-from').textContent = document.getElementById('from-email').value || 'not configured';
         document.getElementById('review-priority').textContent = document.getElementById('priority-scheduling').checked
-          ? document.getElementById('priority-sequence').value || 'sequence required' : 'off';
+          ? 'on (0, 0, 0, 0, 1, 1, 2)' : 'off';
       }
     }
     function openView(name) {
@@ -440,14 +436,11 @@
     }));
     document.getElementById('queue-provider').addEventListener('change', () => openPanel('queue'));
     const priorityScheduling = document.getElementById('priority-scheduling');
-    const prioritySequence = document.getElementById('priority-sequence');
     const priorityOptions = document.getElementById('rabbitmq-priority-options');
     function updatePriorityOptions() {
       const rabbitmq = document.getElementById('queue-provider').value === 'RABBITMQ';
       priorityOptions.hidden = !rabbitmq;
       priorityScheduling.disabled = !rabbitmq;
-      prioritySequence.disabled = !rabbitmq;
-      prioritySequence.required = rabbitmq && priorityScheduling.checked;
     }
     priorityScheduling.addEventListener('change', updatePriorityOptions);
     document.getElementById('queue-provider').addEventListener('change', updatePriorityOptions);
@@ -465,7 +458,6 @@
       if (!config) return;
       document.getElementById('queue-provider').value = config.provider;
       priorityScheduling.checked = config.priorityScheduling || false;
-      prioritySequence.value = config.prioritySequence || '';
       updatePriorityOptions();
       document.getElementById('smtp-host').value = config.smtpHost;
       document.getElementById('smtp-port').value = config.smtpPort;
@@ -489,7 +481,7 @@
       const invalid = [queue, ...emailFields.map(id => document.getElementById(id))].find(field => !field.checkValidity());
       if (invalid) {
         event.preventDefault();
-        openPanel(invalid === queue || invalid === prioritySequence ? 'queue' : 'email');
+        openPanel(invalid === queue ? 'queue' : 'email');
         invalid.reportValidity();
         return;
       }
