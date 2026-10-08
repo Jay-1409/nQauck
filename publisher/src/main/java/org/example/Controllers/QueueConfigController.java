@@ -48,9 +48,10 @@ public class QueueConfigController {
             @RequestParam(defaultValue = "false") boolean smtpAuth,
             @RequestParam(defaultValue = "false") boolean smtpStarttls,
             @RequestParam(defaultValue = "") String smtpUsername,
-            @RequestParam(defaultValue = "") String smtpPassword) {
+            @RequestParam(defaultValue = "") String smtpPassword,
+            @RequestParam(defaultValue = "false") boolean priorityScheduling) {
         String yaml = configurationService.generate(new DashboardConfiguration(provider, smtpHost, smtpPort,
-                fromEmail, smtpAuth, smtpStarttls, smtpUsername, smtpPassword));
+                fromEmail, smtpAuth, smtpStarttls, smtpUsername, smtpPassword, priorityScheduling));
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=application.yml")
                 .contentType(MediaType.parseMediaType("application/yaml"))

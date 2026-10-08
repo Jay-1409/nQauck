@@ -155,6 +155,10 @@
               </select>
             </div>
             <p class="hint">RabbitMQ is currently the only worker queue adapter implemented.</p>
+            <div id="rabbitmq-priority-options">
+              <label class="check"><input id="priority-scheduling" name="priorityScheduling" type="checkbox" value="true"> Enable priority scheduling</label>
+              <p class="hint">Fixed cycle: 0, 0, 0, 0, 1, 1, 2. Level 0 is high, 1 is medium, and 2 is low.</p>
+            </div>
             <div class="actions"><span></span><button type="button" data-panel="email">Email delivery</button></div>
           </section>
 
@@ -194,6 +198,7 @@
             <h3>Review configuration</h3>
             <p class="section-intro">Check the selected providers before downloading the worker YAML.</p>
             <p>Queue: <strong id="review-queue"></strong></p>
+            <p>Priority scheduling: <strong id="review-priority"></strong></p>
             <p>Email: SMTP at <strong id="review-smtp"></strong></p>
             <p>Default sender: <strong id="review-from"></strong></p>
             <p class="hint">The generated file contains SMTP credentials. Store it securely.</p>
@@ -290,6 +295,8 @@
         document.getElementById('review-queue').textContent = provider.options[provider.selectedIndex].text;
         document.getElementById('review-smtp').textContent = document.getElementById('smtp-host').value || 'not configured';
         document.getElementById('review-from').textContent = document.getElementById('from-email').value || 'not configured';
+        document.getElementById('review-priority').textContent = document.getElementById('priority-scheduling').checked
+          ? 'on (0, 0, 0, 0, 1, 1, 2)' : 'off';
       }
     }
     function openView(name) {
@@ -428,6 +435,16 @@
       openPanel(item.dataset.panel);
     }));
     document.getElementById('queue-provider').addEventListener('change', () => openPanel('queue'));
+    const priorityScheduling = document.getElementById('priority-scheduling');
+    const priorityOptions = document.getElementById('rabbitmq-priority-options');
+    function updatePriorityOptions() {
+      const rabbitmq = document.getElementById('queue-provider').value === 'RABBITMQ';
+      priorityOptions.hidden = !rabbitmq;
+      priorityScheduling.disabled = !rabbitmq;
+    }
+    priorityScheduling.addEventListener('change', updatePriorityOptions);
+    document.getElementById('queue-provider').addEventListener('change', updatePriorityOptions);
+    updatePriorityOptions();
     openView('statistics');
     auth.addEventListener('change', () => {
       username.required = auth.checked;
@@ -440,6 +457,8 @@
     }).then(config => {
       if (!config) return;
       document.getElementById('queue-provider').value = config.provider;
+      priorityScheduling.checked = config.priorityScheduling || false;
+      updatePriorityOptions();
       document.getElementById('smtp-host').value = config.smtpHost;
       document.getElementById('smtp-port').value = config.smtpPort;
       document.getElementById('from-email').value = config.fromEmail;
