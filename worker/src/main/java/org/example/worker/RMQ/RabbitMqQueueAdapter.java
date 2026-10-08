@@ -9,6 +9,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 @ConditionalOnProperty(prefix = "app.queue", name = "provider", havingValue = "RABBITMQ")
+@ConditionalOnProperty(prefix = "app.rabbitmq.priority-scheduling", name = "enabled", havingValue = "false", matchIfMissing = true)
 public class RabbitMqQueueAdapter implements QueueAdapter {
 
     private final EventConsumer eventConsumer;
