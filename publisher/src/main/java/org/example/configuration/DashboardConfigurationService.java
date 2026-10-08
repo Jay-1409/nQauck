@@ -17,7 +17,8 @@ public class DashboardConfigurationService {
     public Optional<SavedConfiguration> load() {
         return dataStore.loadConfiguration().map(config -> new SavedConfiguration(config.provider(),
                 config.smtpHost(), config.smtpPort(), config.fromEmail(), config.smtpAuth(),
-                config.smtpStarttls(), config.smtpUsername(), !config.smtpPassword().isBlank()));
+                config.smtpStarttls(), config.smtpUsername(), !config.smtpPassword().isBlank(),
+                config.priorityScheduling(), config.prioritySequence() == null ? "" : config.prioritySequence()));
     }
 
     public String generate(DashboardConfiguration submitted) {
@@ -34,10 +35,21 @@ public class DashboardConfigurationService {
             throw new InvalidConfigurationException("SMTP username and password are required when authentication is enabled");
         }
 
-        String yaml = toYaml(submitted, password);
+        String sequence = submitted.prioritySequence() == null ? "" : submitted.prioritySequence().trim();
+        if (submitted.priorityScheduling() && submitted.provider() != QueueProvider.RABBITMQ) {
+            throw new InvalidConfigurationException("Priority scheduling is available only with RabbitMQ");
+        }
+        if (submitted.priorityScheduling() && (sequence.isBlank() ||
+                java.util.Arrays.stream(sequence.split(",")).anyMatch(name -> !name.trim().matches("[A-Za-z0-9_.-]+")))) {
+            throw new InvalidConfigurationException("Priority sequence must be a comma-separated list of RabbitMQ queue names");
+        }
+        DashboardConfiguration normalized = new DashboardConfiguration(submitted.provider(), submitted.smtpHost(),
+                submitted.smtpPort(), submitted.fromEmail(), submitted.smtpAuth(), submitted.smtpStarttls(),
+                submitted.smtpUsername(), submitted.smtpPassword(), submitted.priorityScheduling(), sequence);
+        String yaml = toYaml(normalized, password);
         DashboardConfiguration saved = new DashboardConfiguration(submitted.provider(), submitted.smtpHost(),
                 submitted.smtpPort(), submitted.fromEmail(), submitted.smtpAuth(), submitted.smtpStarttls(),
-                submitted.smtpUsername(), submitted.smtpAuth() ? password : "");
+                submitted.smtpUsername(), submitted.smtpAuth() ? password : "", submitted.priorityScheduling(), sequence);
         dataStore.saveConfiguration(saved);
         return yaml;
     }
@@ -45,6 +57,8 @@ public class DashboardConfigurationService {
     private String toYaml(DashboardConfiguration config, String password) {
         String host = quote(config.smtpHost(), "SMTP host");
         String from = quote(config.fromEmail(), "Sender address");
+        String normalizedSequence = config.prioritySequence().isBlank() ? "" : java.util.Arrays.stream(config.prioritySequence().split(","))
+                .map(String::trim).map(name -> "'" + name + "'").collect(java.util.stream.Collectors.joining(", "));
         StringBuilder yaml = new StringBuilder("spring:\n");
         if (config.provider() == QueueProvider.RABBITMQ) {
             yaml.append("""
@@ -82,7 +96,10 @@ public class DashboardConfigurationService {
                         queues:
                           email:
                             name: email.queue
-                    """);
+                        priority-scheduling:
+                          enabled: %s
+                          sequence: [%s]
+                    """.formatted(config.priorityScheduling(), normalizedSequence));
             case KAFKA -> yaml.append("""
                       kafka:
                         bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}

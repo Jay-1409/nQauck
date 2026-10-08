@@ -8,4 +8,6 @@ public record DashboardConfiguration(
         boolean smtpAuth,
         boolean smtpStarttls,
         String smtpUsername,
-        String smtpPassword) {}
+        String smtpPassword,
+        boolean priorityScheduling,
+        String prioritySequence) {}
