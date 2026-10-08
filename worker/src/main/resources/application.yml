@@ -22,5 +22,8 @@ app:
     queues:
       email:
         name: email.queue
+    priority-scheduling:
+      enabled: false
+      sequence: [email.queue]
   email:
     from: 'jay_shah@outlook.in'
