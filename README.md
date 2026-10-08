@@ -23,6 +23,7 @@ Follow the [Quickstart guide](./docs/quickstart.md) to start RabbitMQ, the publi
 
 - [Architecture and message flow](./docs/architecture.md)
 - [HTTP API](./docs/api.md)
+- [Priority Scheduling](./docs/priority.md)
 
 ## License
 
