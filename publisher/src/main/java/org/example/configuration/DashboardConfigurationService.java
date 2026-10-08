@@ -8,6 +8,8 @@ import java.util.Optional;
 @Service
 public class DashboardConfigurationService {
 
+    private static final String PRIORITY_SEQUENCE = "[0, 0, 0, 0, 1, 1, 2]";
+
     private final DashboardDataStore dataStore;
 
     public DashboardConfigurationService(DashboardDataStore dataStore) {
@@ -18,7 +20,7 @@ public class DashboardConfigurationService {
         return dataStore.loadConfiguration().map(config -> new SavedConfiguration(config.provider(),
                 config.smtpHost(), config.smtpPort(), config.fromEmail(), config.smtpAuth(),
                 config.smtpStarttls(), config.smtpUsername(), !config.smtpPassword().isBlank(),
-                config.priorityScheduling(), config.prioritySequence() == null ? "" : config.prioritySequence()));
+                config.priorityScheduling()));
     }
 
     public String generate(DashboardConfiguration submitted) {
@@ -35,21 +37,13 @@ public class DashboardConfigurationService {
             throw new InvalidConfigurationException("SMTP username and password are required when authentication is enabled");
         }
 
-        String sequence = submitted.prioritySequence() == null ? "" : submitted.prioritySequence().trim();
         if (submitted.priorityScheduling() && submitted.provider() != QueueProvider.RABBITMQ) {
             throw new InvalidConfigurationException("Priority scheduling is available only with RabbitMQ");
         }
-        if (submitted.priorityScheduling() && (sequence.isBlank() ||
-                java.util.Arrays.stream(sequence.split(",")).anyMatch(name -> !name.trim().matches("[A-Za-z0-9_.-]+")))) {
-            throw new InvalidConfigurationException("Priority sequence must be a comma-separated list of RabbitMQ queue names");
-        }
-        DashboardConfiguration normalized = new DashboardConfiguration(submitted.provider(), submitted.smtpHost(),
-                submitted.smtpPort(), submitted.fromEmail(), submitted.smtpAuth(), submitted.smtpStarttls(),
-                submitted.smtpUsername(), submitted.smtpPassword(), submitted.priorityScheduling(), sequence);
-        String yaml = toYaml(normalized, password);
+        String yaml = toYaml(submitted, password);
         DashboardConfiguration saved = new DashboardConfiguration(submitted.provider(), submitted.smtpHost(),
                 submitted.smtpPort(), submitted.fromEmail(), submitted.smtpAuth(), submitted.smtpStarttls(),
-                submitted.smtpUsername(), submitted.smtpAuth() ? password : "", submitted.priorityScheduling(), sequence);
+                submitted.smtpUsername(), submitted.smtpAuth() ? password : "", submitted.priorityScheduling());
         dataStore.saveConfiguration(saved);
         return yaml;
     }
@@ -57,8 +51,6 @@ public class DashboardConfigurationService {
     private String toYaml(DashboardConfiguration config, String password) {
         String host = quote(config.smtpHost(), "SMTP host");
         String from = quote(config.fromEmail(), "Sender address");
-        String normalizedSequence = config.prioritySequence().isBlank() ? "" : java.util.Arrays.stream(config.prioritySequence().split(","))
-                .map(String::trim).map(name -> "'" + name + "'").collect(java.util.stream.Collectors.joining(", "));
         StringBuilder yaml = new StringBuilder("spring:\n");
         if (config.provider() == QueueProvider.RABBITMQ) {
             yaml.append("""
@@ -96,10 +88,14 @@ public class DashboardConfigurationService {
                         queues:
                           email:
                             name: email.queue
+                          priority:
+                            high: email.high.queue
+                            medium: email.medium.queue
+                            low: email.low.queue
                         priority-scheduling:
                           enabled: %s
-                          sequence: [%s]
-                    """.formatted(config.priorityScheduling(), normalizedSequence));
+                          sequence: %s
+                    """.formatted(config.priorityScheduling(), PRIORITY_SEQUENCE));
             case KAFKA -> yaml.append("""
                       kafka:
                         bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
@@ -128,7 +124,7 @@ public class DashboardConfigurationService {
 
     public record SavedConfiguration(QueueProvider provider, String smtpHost, int smtpPort, String fromEmail,
                                      boolean smtpAuth, boolean smtpStarttls, String smtpUsername,
-                                     boolean smtpPasswordConfigured) {}
+                                     boolean smtpPasswordConfigured, boolean priorityScheduling) {}
 
     public static class InvalidConfigurationException extends RuntimeException {
         public InvalidConfigurationException(String message) {

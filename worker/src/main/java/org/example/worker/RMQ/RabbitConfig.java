@@ -17,19 +17,14 @@ public class RabbitConfig {
     @Bean
     public Declarables queues(
             @Value("${app.rabbitmq.queues.email.name}") String emailQueue,
-            @Value("${app.rabbitmq.priority-scheduling.enabled:false}") boolean priorityScheduling,
-            @Value("${app.rabbitmq.priority-scheduling.sequence:}") String[] sequence) {
+            @Value("${app.rabbitmq.queues.priority.high}") String highQueue,
+            @Value("${app.rabbitmq.queues.priority.medium}") String mediumQueue,
+            @Value("${app.rabbitmq.queues.priority.low}") String lowQueue) {
         LinkedHashSet<String> names = new LinkedHashSet<>();
         names.add(emailQueue);
-        if (priorityScheduling) {
-            for (String queue : sequence) {
-                if (queue.isBlank()) throw new IllegalArgumentException("Priority sequence contains an empty queue name");
-                names.add(queue.trim());
-            }
-            if (names.size() == 1 && sequence.length == 0) {
-                throw new IllegalArgumentException("Priority scheduling requires a non-empty queue sequence");
-            }
-        }
+        names.add(highQueue);
+        names.add(mediumQueue);
+        names.add(lowQueue);
         return new Declarables(names.stream().map(name -> new Queue(name, true)).toList());
     }
 

@@ -21,16 +21,23 @@ public class PriorityRabbitMqQueueAdapter implements QueueAdapter {
 
     private final RabbitTemplate rabbitTemplate;
     private final EventConsumer eventConsumer;
-    private final String[] sequence;
+    private final String[] queueSequence;
     private volatile boolean running;
     private Thread worker;
 
     public PriorityRabbitMqQueueAdapter(RabbitTemplate rabbitTemplate, EventConsumer eventConsumer,
-            @Value("${app.rabbitmq.priority-scheduling.sequence}") String[] sequence) {
+            @Value("${app.rabbitmq.priority-scheduling.sequence}") String[] sequence,
+            @Value("${app.rabbitmq.queues.priority.high}") String highQueue,
+            @Value("${app.rabbitmq.queues.priority.medium}") String mediumQueue,
+            @Value("${app.rabbitmq.queues.priority.low}") String lowQueue) {
         this.rabbitTemplate = rabbitTemplate;
         this.eventConsumer = eventConsumer;
-        this.sequence = sequence;
-        if (sequence.length == 0) throw new IllegalArgumentException("Priority scheduling requires a non-empty queue sequence");
+        if (sequence.length == 0) throw new IllegalArgumentException("Priority scheduling requires a non-empty sequence");
+        String[] queues = {highQueue, mediumQueue, lowQueue};
+        this.queueSequence = java.util.Arrays.stream(sequence).mapToInt(Integer::parseInt)
+                .peek(level -> {
+                    if (level < 0 || level >= queues.length) throw new IllegalArgumentException("Priority levels must be 0, 1, or 2");
+                }).mapToObj(level -> queues[level]).toArray(String[]::new);
     }
 
     @Override
@@ -57,7 +64,7 @@ public class PriorityRabbitMqQueueAdapter implements QueueAdapter {
         while (running) {
             boolean received = false;
             try {
-                for (String queue : sequence) received |= receive(queue.trim());
+                for (String queue : queueSequence) received |= receive(queue);
                 if (!received) Thread.sleep(1);
             } catch (InterruptedException exception) {
                 Thread.currentThread().interrupt();
