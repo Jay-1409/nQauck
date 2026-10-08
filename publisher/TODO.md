@@ -1,1 +1,3 @@
-- need to add email validation before we send the email event into the queue
+- Need to add email validation before sending an email event to the queue.
+- Revisit the dashboard frontend: consider React with Vite and split configuration and statistics into components when frontend extension becomes a priority.
+- need to add some sort of a rate limiting mechanism? not sure how though.
