@@ -43,21 +43,22 @@ we can use mailpit for simulating an smtp server. -> this was cool
 
 ### 16:01
 
-I have some ideas for the stats that we caould show in the dashboard. 
+## Dashboard Statistics
 
-Area              Possible statistics                                                           Data needed                                                                
-━━━━━━━━━━━━━━━━  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Queue             Messages waiting, unacknowledged messages, publish rate, delivery rate,       RabbitMQ Management API. These are also the metrics the benchmark already
-active consumers                                                              samples.
-────────────────  ────────────────────────────────────────────────────────────────────────────  ────────────────────────────────────────────────────────────────────────────
-Publisher         Requests accepted, failed requests, acceptance rate, response latency         Add counters and latency tracking to the publisher. 202 Accepted only
-(p50/p95/p99)      means the message was queued.
-────────────────  ────────────────────────────────────────────────────────────────────────────  ────────────────────────────────────────────────────────────────────────────
-Workers           Active consumers, messages processed per second, processing latency,          RabbitMQ can report consumer count; throughput and health need worker
-worker health                                                                 instrumentation.
-────────────────  ────────────────────────────────────────────────────────────────────────────  ────────────────────────────────────────────────────────────────────────────
-Email delivery    Emails sent, send failures, retries, SMTP response time, most recent error    Add delivery counters and status reporting in the worker.
-────────────────  ────────────────────────────────────────────────────────────────────────────  ────────────────────────────────────────────────────────────────────────────
-System health     Publisher/worker/broker availability, uptime, CPU and memory use              Health checks; CPU and memory require runtime or host metrics.
+| Area               | Possible Statistics                                                                      | Data Needed                                                                                                            |
+| ------------------ | ---------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| **Queue**          | Messages waiting, unacknowledged messages, publish rate, delivery rate, active consumers | RabbitMQ Management API. These are also the metrics already sampled by the benchmark.                                  |
+| **Publisher**      | Requests accepted, failed requests, acceptance rate, response latency (p50/p95/p99)      | Add counters and latency tracking to the publisher. A `202 Accepted` response only means the message was queued.       |
+| **Workers**        | Active consumers, messages processed per second, processing latency, worker health       | RabbitMQ can report consumer counts; throughput and health require worker instrumentation.                             |
+| **Email Delivery** | Emails sent, send failures, retries, SMTP response time, most recent error               | Add delivery counters and status reporting to the worker.                                                              |
+| **System Health**  | Publisher, worker, and broker availability; uptime; CPU and memory usage                 | Health checks are needed for availability and uptime. CPU and memory metrics require runtime or host-level monitoring. |
 
 
+
+## 9-OCT-2026
+
+### 15:08
+
+Today I am going to try and learn about how to actually use **KAFKA** from the documentation. 
+
+ 
