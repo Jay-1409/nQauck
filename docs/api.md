@@ -1,6 +1,6 @@
 # HTTP API
 
-The publisher listens on port `8081` by default.
+The publisher listens on port `17431` by default.
 
 ## Submit an email
 
@@ -20,7 +20,7 @@ Request content type: `application/json`
 Example:
 
 ```sh
-curl -i -X POST http://localhost:8081/api/email/send \
+curl -i -X POST http://localhost:17431/api/email/send \
   -H 'Content-Type: application/json' \
   -d '{"to":"person@example.com","subject":"Welcome","htmlTemplate":"<h1>Hello</h1>","priority":"HIGH"}'
 ```

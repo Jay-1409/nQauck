@@ -14,7 +14,7 @@ Start the publisher:
 mvn -pl publisher spring-boot:run
 ```
 
-Open [http://localhost:8081](http://localhost:8081), set the dashboard password on first launch, then configure RabbitMQ and SMTP. Download the generated worker YAML to a private location outside the repository:
+Open [http://localhost:17431](http://localhost:17431), set the dashboard password on first launch, then configure RabbitMQ and SMTP. Download the generated worker YAML to a private location outside the repository:
 
 ```sh
 mkdir -p "$HOME/.pongpin"
@@ -36,7 +36,7 @@ SPRING_CONFIG_ADDITIONAL_LOCATION="file:$HOME/.pongpin/worker-application.yml" m
 Submit an email:
 
 ```sh
-curl -X POST http://localhost:8081/api/email/send \
+curl -X POST http://localhost:17431/api/email/send \
   -H 'Content-Type: application/json' \
   -d '{"to":"person@example.com","subject":"Hello","htmlTemplate":"<p>Hello from Nquack.</p>"}'
 ```

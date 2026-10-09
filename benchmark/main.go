@@ -99,7 +99,7 @@ type queueResponse struct {
 
 func main() {
 	var opt options
-	flag.StringVar(&opt.endpoint, "url", "http://localhost:8081/api/email/send", "Publisher email endpoint")
+	flag.StringVar(&opt.endpoint, "url", "http://localhost:17431/api/email/send", "Publisher email endpoint")
 	flag.StringVar(&opt.rabbitAddr, "rabbit-address", "localhost:5672", "RabbitMQ AMQP host:port")
 	flag.StringVar(&opt.smtpAddr, "smtp-address", "localhost:1025", "SMTP sink host:port")
 	flag.IntVar(&opt.rate, "rate", 100, "Target request arrival rate per second")
