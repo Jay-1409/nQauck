@@ -1,8 +1,14 @@
 package org.example.configuration;
 
 import org.example.Security.DashboardDataStore;
+import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.Optional;
 
 @Service
@@ -11,9 +17,13 @@ public class DashboardConfigurationService {
     private static final String PRIORITY_SEQUENCE = "[0, 0, 0, 0, 1, 1, 2]";
 
     private final DashboardDataStore dataStore;
+    private final Path publisherConfigurationFile;
 
-    public DashboardConfigurationService(DashboardDataStore dataStore) {
+    public DashboardConfigurationService(DashboardDataStore dataStore, Environment environment) {
         this.dataStore = dataStore;
+        this.publisherConfigurationFile = Path.of(environment.getProperty("app.dashboard.data-dir",
+                Path.of(System.getProperty("user.home"), ".pongpin").toString()))
+                .resolve("publisher-application.yml");
     }
 
     public Optional<SavedConfiguration> load() {
@@ -55,7 +65,57 @@ public class DashboardConfigurationService {
                 submitted.smtpUsername(), submitted.smtpAuth() ? password : "", submitted.priorityScheduling(),
                 submitted.rabbitMqHost(), submitted.rabbitMqPort(), submitted.kafkaBootstrapServers());
         dataStore.saveConfiguration(saved);
+        writePublisherConfiguration(submitted);
         return yaml;
+    }
+
+    private void writePublisherConfiguration(DashboardConfiguration config) {
+        StringBuilder yaml = new StringBuilder("app:\n  queue:\n    provider: ")
+                .append(config.provider()).append('\n');
+        switch (config.provider()) {
+            case RABBITMQ -> yaml.append("""
+                      spring:
+                        rabbitmq:
+                          host: %s
+                          port: %d
+                          username: ${RABBITMQ_USERNAME:guest}
+                          password: ${RABBITMQ_PASSWORD:guest}
+                    """.formatted(quote(config.rabbitMqHost(), "RabbitMQ host"), config.rabbitMqPort()));
+            case KAFKA -> yaml.append("""
+                    kafka:
+                      bootstrap-servers: %s
+                      topic: ${KAFKA_TOPIC:email.topic}
+                    """.formatted(quote(config.kafkaBootstrapServers(), "Kafka bootstrap servers")));
+            case SQS -> { }
+        }
+        writeAtomically(publisherConfigurationFile, yaml.toString());
+    }
+
+    private void writeAtomically(Path destination, String contents) {
+        try {
+            Files.createDirectories(destination.getParent());
+            Path temporary = Files.createTempFile(destination.getParent(), ".publisher-application-", ".tmp");
+            try {
+                Files.writeString(temporary, contents, StandardCharsets.UTF_8);
+                try {
+                    Files.move(temporary, destination, StandardCopyOption.ATOMIC_MOVE,
+                            StandardCopyOption.REPLACE_EXISTING);
+                } catch (java.nio.file.AtomicMoveNotSupportedException ignored) {
+                    Files.move(temporary, destination, StandardCopyOption.REPLACE_EXISTING);
+                }
+                try {
+                    Files.setPosixFilePermissions(destination, java.util.Set.of(
+                            java.nio.file.attribute.PosixFilePermission.OWNER_READ,
+                            java.nio.file.attribute.PosixFilePermission.OWNER_WRITE));
+                } catch (UnsupportedOperationException ignored) {
+                    // shortcut: non-POSIX filesystems use the current user's default ACL.
+                }
+            } finally {
+                Files.deleteIfExists(temporary);
+            }
+        } catch (IOException exception) {
+            throw new IllegalStateException("Could not save publisher configuration YAML", exception);
+        }
     }
 
     private String toYaml(DashboardConfiguration config, String password) {

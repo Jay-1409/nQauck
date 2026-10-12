@@ -16,6 +16,14 @@ mvn -pl publisher spring-boot:run
 
 Open [http://localhost:17431](http://localhost:17431), set the dashboard password on first launch, then configure RabbitMQ and SMTP. Download the generated worker YAML to a private location outside the repository:
 
+The dashboard also saves a publisher-safe runtime file at `$HOME/.pongpin/publisher-application.yml`. After configuring the dashboard, you can use it on the next publisher start:
+
+```sh
+SPRING_CONFIG_ADDITIONAL_LOCATION="file:$HOME/.pongpin/publisher-application.yml" mvn -pl publisher spring-boot:run
+```
+
+This file contains queue provider and broker settings only; SMTP credentials remain in the encrypted dashboard store and the downloaded worker YAML.
+
 ```sh
 mkdir -p "$HOME/.pongpin"
 chmod 700 "$HOME/.pongpin"
