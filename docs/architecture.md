@@ -16,7 +16,7 @@ flowchart LR
 
 ## Responsibilities
 
-- **Publisher:** Hosts the dashboard and email API on port `8081`. It declares a durable direct exchange, durable email queue, and routing-key binding. The current route uses `email.send`.
+- **Publisher:** Hosts the dashboard and email API on port `17431`. It declares a durable direct exchange, durable email queue, and routing-key binding. The current route uses `email.send`.
 - **Dashboard configuration service:** Validates submitted queue and SMTP settings, preserves a saved SMTP password when the field is left blank, and generates worker YAML.
 - **Dashboard data store:** Encrypts saved settings with AES-GCM. The data and local key are stored under `~/.pongpin/` by default.
 - **Dashboard account store:** Stores the dashboard login password as a BCrypt hash.

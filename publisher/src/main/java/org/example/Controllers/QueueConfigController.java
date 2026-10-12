@@ -49,9 +49,13 @@ public class QueueConfigController {
             @RequestParam(defaultValue = "false") boolean smtpStarttls,
             @RequestParam(defaultValue = "") String smtpUsername,
             @RequestParam(defaultValue = "") String smtpPassword,
-            @RequestParam(defaultValue = "false") boolean priorityScheduling) {
+            @RequestParam(defaultValue = "false") boolean priorityScheduling,
+            @RequestParam(defaultValue = "localhost") String rabbitMqHost,
+            @RequestParam(defaultValue = "5672") int rabbitMqPort,
+            @RequestParam(defaultValue = "localhost:9092") String kafkaBootstrapServers) {
         String yaml = configurationService.generate(new DashboardConfiguration(provider, smtpHost, smtpPort,
-                fromEmail, smtpAuth, smtpStarttls, smtpUsername, smtpPassword, priorityScheduling));
+                fromEmail, smtpAuth, smtpStarttls, smtpUsername, smtpPassword, priorityScheduling,
+                rabbitMqHost, rabbitMqPort, kafkaBootstrapServers));
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=application.yml")
                 .contentType(MediaType.parseMediaType("application/yaml"))

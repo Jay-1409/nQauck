@@ -10,13 +10,12 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.amqp.rabbit.support.DefaultMessagePropertiesConverter;
 import org.springframework.amqp.support.converter.MessageConverter;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.stereotype.Component;
 import com.rabbitmq.client.GetResponse;
 
 @Component
-@ConditionalOnProperty(prefix = "app.queue", name = "provider", havingValue = "RABBITMQ")
-@ConditionalOnProperty(prefix = "app.rabbitmq.priority-scheduling", name = "enabled", havingValue = "true")
+@ConditionalOnExpression("'${app.queue.provider:}' == 'RABBITMQ' and '${app.rabbitmq.priority-scheduling.enabled:false}' == 'true'")
 public class PriorityRabbitMqQueueAdapter implements QueueAdapter {
 
     private final RabbitTemplate rabbitTemplate;

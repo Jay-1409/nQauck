@@ -12,4 +12,7 @@ public record DashboardConfiguration(
         boolean smtpStarttls,
         String smtpUsername,
         String smtpPassword,
-        boolean priorityScheduling) {}
+        boolean priorityScheduling,
+        String rabbitMqHost,
+        int rabbitMqPort,
+        String kafkaBootstrapServers) {}

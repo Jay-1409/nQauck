@@ -1,11 +1,15 @@
 package org.example.QueueAdaptor.RMQ;
 
+import org.example.QueueAdaptor.MessagePublisherAdapter;
+import org.example.QueueAdaptor.QueueUnavailableException;
+import org.example.configuration.QueueProvider;
+import org.springframework.amqp.AmqpConnectException;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 @Component
-public class RabbitMqPublisher {
+public class RabbitMqPublisher implements MessagePublisherAdapter {
 
     private final RabbitTemplate rabbitTemplate;
     private final String exchangeName;
@@ -17,7 +21,17 @@ public class RabbitMqPublisher {
         this.exchangeName = exchangeName;
     }
 
+    @Override
+    public QueueProvider provider() {
+        return QueueProvider.RABBITMQ;
+    }
+
+    @Override
     public void publish(String routingKey, Object message) {
-        rabbitTemplate.convertAndSend(exchangeName, routingKey, message);
+        try {
+            rabbitTemplate.convertAndSend(exchangeName, routingKey, message);
+        } catch (AmqpConnectException exception) {
+            throw new QueueUnavailableException("RabbitMQ is unavailable", exception);
+        }
     }
 }

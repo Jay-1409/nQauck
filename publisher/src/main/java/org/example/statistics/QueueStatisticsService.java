@@ -28,7 +28,8 @@ public class QueueStatisticsService {
     public QueueStatisticsDto getQueueStatistics() {
         QueueProvider provider = configurationService.load()
                 .map(DashboardConfigurationService.SavedConfiguration::provider)
-                .orElse(QueueProvider.RABBITMQ);
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
+                        "Queue provider has not been configured yet"));
         QueueStatisticsAdapter adapter = adapters.get(provider);
         if (adapter == null) {
             throw new ResponseStatusException(HttpStatus.NOT_IMPLEMENTED,
