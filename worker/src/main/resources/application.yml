@@ -1,14 +1,9 @@
 spring:
-  rabbitmq:
-    host: ${RABBITMQ_HOST:localhost}
-    port: ${RABBITMQ_PORT:5672}
-    username: ${RABBITMQ_USERNAME:guest}
-    password: ${RABBITMQ_PASSWORD:guest}
   mail:
     host: 'http://localhost'
     port: 1010
     username: 'jay_shah@outlook.in'
-    password: 'jXte2YGDy:4v2bN'
+    password: 'CXX_:Gif8F6zS-c'
     properties:
       "[mail.smtp.auth]": true
       "[mail.smtp.starttls.enable]": true
@@ -17,17 +12,9 @@ spring:
       "[mail.smtp.writetimeout]": 5000
 app:
   queue:
-    provider: RABBITMQ
-  rabbitmq:
-    queues:
-      email:
-        name: email.queue
-      priority:
-        high: email.high.queue
-        medium: email.medium.queue
-        low: email.low.queue
-    priority-scheduling:
-      enabled: false
-      sequence: [0, 0, 0, 0, 1, 1, 2]
+    provider: KAFKA
+  kafka:
+    bootstrap-servers: '${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}'
+    topic: ${KAFKA_TOPIC:email.topic}
   email:
     from: 'jay_shah@outlook.in'

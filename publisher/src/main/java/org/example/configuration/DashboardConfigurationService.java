@@ -20,7 +20,9 @@ public class DashboardConfigurationService {
         return dataStore.loadConfiguration().map(config -> new SavedConfiguration(config.provider(),
                 config.smtpHost(), config.smtpPort(), config.fromEmail(), config.smtpAuth(),
                 config.smtpStarttls(), config.smtpUsername(), !config.smtpPassword().isBlank(),
-                config.priorityScheduling()));
+                config.priorityScheduling(), config.rabbitMqHost() == null ? "localhost" : config.rabbitMqHost(),
+                config.rabbitMqPort() == 0 ? 5672 : config.rabbitMqPort(),
+                config.kafkaBootstrapServers() == null ? "localhost:9092" : config.kafkaBootstrapServers()));
     }
 
     public String generate(DashboardConfiguration submitted) {
@@ -40,10 +42,18 @@ public class DashboardConfigurationService {
         if (submitted.priorityScheduling() && submitted.provider() != QueueProvider.RABBITMQ) {
             throw new InvalidConfigurationException("Priority scheduling is available only with RabbitMQ");
         }
+        if (submitted.provider() == QueueProvider.RABBITMQ
+                && (isBlank(submitted.rabbitMqHost()) || submitted.rabbitMqPort() < 1 || submitted.rabbitMqPort() > 65535)) {
+            throw new InvalidConfigurationException("RabbitMQ host and a valid port are required");
+        }
+        if (submitted.provider() == QueueProvider.KAFKA && isBlank(submitted.kafkaBootstrapServers())) {
+            throw new InvalidConfigurationException("Kafka bootstrap servers are required");
+        }
         String yaml = toYaml(submitted, password);
         DashboardConfiguration saved = new DashboardConfiguration(submitted.provider(), submitted.smtpHost(),
                 submitted.smtpPort(), submitted.fromEmail(), submitted.smtpAuth(), submitted.smtpStarttls(),
-                submitted.smtpUsername(), submitted.smtpAuth() ? password : "", submitted.priorityScheduling());
+                submitted.smtpUsername(), submitted.smtpAuth() ? password : "", submitted.priorityScheduling(),
+                submitted.rabbitMqHost(), submitted.rabbitMqPort(), submitted.kafkaBootstrapServers());
         dataStore.saveConfiguration(saved);
         return yaml;
     }
@@ -53,13 +63,14 @@ public class DashboardConfigurationService {
         String from = quote(config.fromEmail(), "Sender address");
         StringBuilder yaml = new StringBuilder("spring:\n");
         if (config.provider() == QueueProvider.RABBITMQ) {
+            String rabbitHost = quote("${RABBITMQ_HOST:" + config.rabbitMqHost() + "}", "RabbitMQ host");
             yaml.append("""
                       rabbitmq:
-                        host: ${RABBITMQ_HOST:localhost}
-                        port: ${RABBITMQ_PORT:5672}
+                        host: %s
+                        port: ${RABBITMQ_PORT:%d}
                         username: ${RABBITMQ_USERNAME:guest}
                         password: ${RABBITMQ_PASSWORD:guest}
-                    """);
+                    """.formatted(rabbitHost, config.rabbitMqPort()));
         }
         yaml.append("""
                   mail:
@@ -98,9 +109,10 @@ public class DashboardConfigurationService {
                     """.formatted(config.priorityScheduling(), PRIORITY_SEQUENCE));
             case KAFKA -> yaml.append("""
                       kafka:
-                        bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
-                        topic: ${KAFKA_TOPIC:email.queue}
-                    """);
+                        bootstrap-servers: %s
+                        topic: ${KAFKA_TOPIC:email.topic}
+                    """.formatted(quote("${KAFKA_BOOTSTRAP_SERVERS:" + config.kafkaBootstrapServers() + "}",
+                    "Kafka bootstrap servers")));
             case SQS -> yaml.append("""
                       sqs:
                         region: ${AWS_REGION:ap-south-1}
@@ -124,7 +136,8 @@ public class DashboardConfigurationService {
 
     public record SavedConfiguration(QueueProvider provider, String smtpHost, int smtpPort, String fromEmail,
                                      boolean smtpAuth, boolean smtpStarttls, String smtpUsername,
-                                     boolean smtpPasswordConfigured, boolean priorityScheduling) {}
+                                     boolean smtpPasswordConfigured, boolean priorityScheduling,
+                                     String rabbitMqHost, int rabbitMqPort, String kafkaBootstrapServers) {}
 
     public static class InvalidConfigurationException extends RuntimeException {
         public InvalidConfigurationException(String message) {

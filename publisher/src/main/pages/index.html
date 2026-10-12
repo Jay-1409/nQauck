@@ -107,7 +107,7 @@
       <p class="nav-label">Workspace</p>
       <nav class="tree" aria-label="Dashboard sections">
         <button class="tree-parent" type="button" data-view="configuration">Configuration</button>
-        <div id="configuration-nav" hidden>
+        <div id="configuration-nav">
         <div class="tree-group">
           <button class="tree-parent active" type="button" data-panel="queue">Queue</button>
           <ul class="tree-children">
@@ -126,11 +126,11 @@
           <button class="tree-parent" type="button" data-panel="review">Review &amp; generate</button>
         </div>
         </div>
-        <button class="tree-parent active" type="button" data-view="statistics">Statistics</button>
+        <button class="tree-parent" type="button" data-view="statistics">Statistics</button>
       </nav>
     </aside>
     <main>
-      <div id="configuration-view" hidden>
+      <div id="configuration-view">
       <p class="eyebrow">Configuration</p>
       <h1>Set up your system</h1>
       <p class="intro">Configure queue and email delivery from the sections in the left panel.</p>
@@ -154,7 +154,24 @@
                 <option value="SQS">Amazon SQS</option>
               </select>
             </div>
-            <p class="hint">RabbitMQ is currently the only worker queue adapter implemented.</p>
+            <p class="hint">The selected broker does not need to be running to generate this configuration.</p>
+            <div id="rabbitmq-connection">
+              <div class="field">
+                <label for="rabbitmq-host">RabbitMQ host</label>
+                <input id="rabbitmq-host" name="rabbitMqHost" type="text" value="localhost" required>
+              </div>
+              <div class="field">
+                <label for="rabbitmq-port">RabbitMQ port</label>
+                <input id="rabbitmq-port" name="rabbitMqPort" type="number" min="1" max="65535" value="5672" required>
+              </div>
+            </div>
+            <div id="kafka-connection" hidden>
+              <div class="field">
+                <label for="kafka-bootstrap-servers">Kafka bootstrap servers</label>
+                <input id="kafka-bootstrap-servers" name="kafkaBootstrapServers" type="text" value="localhost:9092" required>
+                <small>Enter one or more host:port values, separated by commas.</small>
+              </div>
+            </div>
             <div id="rabbitmq-priority-options">
               <label class="check"><input id="priority-scheduling" name="priorityScheduling" type="checkbox" value="true"> Enable priority scheduling</label>
               <p class="hint">Fixed cycle: 0, 0, 0, 0, 1, 1, 2. Level 0 is high, 1 is medium, and 2 is low.</p>
@@ -198,6 +215,7 @@
             <h3>Review configuration</h3>
             <p class="section-intro">Check the selected providers before downloading the worker YAML.</p>
             <p>Queue: <strong id="review-queue"></strong></p>
+            <p>Broker endpoint: <strong id="review-broker"></strong></p>
             <p>Priority scheduling: <strong id="review-priority"></strong></p>
             <p>Email: SMTP at <strong id="review-smtp"></strong></p>
             <p>Default sender: <strong id="review-from"></strong></p>
@@ -210,7 +228,7 @@
         </form>
       </section>
       </div>
-      <section id="statistics-view">
+      <section id="statistics-view" hidden>
         <p class="eyebrow">Statistics</p>
         <h1>System statistics</h1>
         <p class="intro">Queue health and publisher request performance.</p>
@@ -293,6 +311,9 @@
       if (name === 'review') {
         const provider = document.getElementById('queue-provider');
         document.getElementById('review-queue').textContent = provider.options[provider.selectedIndex].text;
+        document.getElementById('review-broker').textContent = provider.value === 'RABBITMQ'
+          ? `${document.getElementById('rabbitmq-host').value}:${document.getElementById('rabbitmq-port').value}`
+          : provider.value === 'KAFKA' ? document.getElementById('kafka-bootstrap-servers').value : 'configured by environment';
         document.getElementById('review-smtp').textContent = document.getElementById('smtp-host').value || 'not configured';
         document.getElementById('review-from').textContent = document.getElementById('from-email').value || 'not configured';
         document.getElementById('review-priority').textContent = document.getElementById('priority-scheduling').checked
@@ -437,15 +458,19 @@
     document.getElementById('queue-provider').addEventListener('change', () => openPanel('queue'));
     const priorityScheduling = document.getElementById('priority-scheduling');
     const priorityOptions = document.getElementById('rabbitmq-priority-options');
+    const rabbitmqConnection = document.getElementById('rabbitmq-connection');
+    const kafkaConnection = document.getElementById('kafka-connection');
     function updatePriorityOptions() {
-      const rabbitmq = document.getElementById('queue-provider').value === 'RABBITMQ';
+      const provider = document.getElementById('queue-provider').value;
+      const rabbitmq = provider === 'RABBITMQ';
       priorityOptions.hidden = !rabbitmq;
       priorityScheduling.disabled = !rabbitmq;
+      rabbitmqConnection.hidden = !rabbitmq;
+      kafkaConnection.hidden = provider !== 'KAFKA';
     }
     priorityScheduling.addEventListener('change', updatePriorityOptions);
     document.getElementById('queue-provider').addEventListener('change', updatePriorityOptions);
     updatePriorityOptions();
-    openView('statistics');
     auth.addEventListener('change', () => {
       username.required = auth.checked;
       password.required = auth.checked && !smtpPasswordConfigured;
@@ -455,9 +480,15 @@
       if (!response.ok) throw new Error('Could not load saved configuration');
       return response.json();
     }).then(config => {
-      if (!config) return;
+      if (!config) {
+        openPanel('queue');
+        return;
+      }
       document.getElementById('queue-provider').value = config.provider;
       priorityScheduling.checked = config.priorityScheduling || false;
+      document.getElementById('rabbitmq-host').value = config.rabbitMqHost || 'localhost';
+      document.getElementById('rabbitmq-port').value = config.rabbitMqPort || 5672;
+      document.getElementById('kafka-bootstrap-servers').value = config.kafkaBootstrapServers || 'localhost:9092';
       updatePriorityOptions();
       document.getElementById('smtp-host').value = config.smtpHost;
       document.getElementById('smtp-port').value = config.smtpPort;
@@ -468,12 +499,16 @@
       smtpPasswordConfigured = config.smtpPasswordConfigured;
       username.required = auth.checked;
       password.required = auth.checked && !smtpPasswordConfigured;
+      openPanel('email');
       if (smtpPasswordConfigured) {
         password.placeholder = 'Saved securely; leave blank to keep it';
         document.getElementById('smtp-password-hint').textContent =
           'A saved password is encrypted on this device. Leave the field blank to keep it, or enter a new one.';
       }
-    }).catch(error => console.error(error));
+    }).catch(error => {
+      console.error(error);
+      openPanel('queue');
+    });
     document.getElementById('config-form').addEventListener('submit', async event => {
       const form = event.currentTarget;
       const queue = document.getElementById('queue-provider');
