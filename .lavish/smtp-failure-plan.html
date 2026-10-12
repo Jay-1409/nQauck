@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en" data-lavish-annotate="off">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pongpin · SMTP resilience plan</title>
+  <style>
+    :root { font-family: Inter, ui-sans-serif, system-ui, sans-serif; color:#17211d; background:#f4f6f3; }
+    * { box-sizing:border-box; } body { margin:0; } main { width:min(100% - 32px, 980px); margin:auto; padding:48px 0 72px; }
+    .eyebrow { color:#56876b; font-size:11px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; } h1 { margin:8px 0 10px; font-size:clamp(30px,5vw,42px); letter-spacing:-.045em; } .lead { max-width:760px; color:#68766e; line-height:1.6; }
+    .card { margin-top:20px; padding:24px; border:1px solid #e3e9e4; border-radius:14px; background:#fff; box-shadow:0 8px 30px #20392d0a; } h2 { margin:0 0 8px; font-size:19px; } p { line-height:1.55; } .muted { color:#68766e; }
+    .notice { border-left:4px solid #d99a37; background:#fff8e9; } .notice p { margin:6px 0 0; }
+    .flow { width:100%; height:auto; margin-top:12px; } .flow text { font:600 13px Inter,ui-sans-serif,system-ui,sans-serif; fill:#17211d; } .flow .small { font:500 11px Inter,ui-sans-serif,system-ui,sans-serif; fill:#68766e; } .flow rect { stroke-width:1.5; }
+    .grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; } .step { padding:18px; border:1px solid #e3e9e4; border-radius:12px; } .num { color:#3c8055; font-size:12px; font-weight:800; letter-spacing:.08em; }
+    ul { margin:8px 0 0; padding-left:20px; } li { margin:7px 0; line-height:1.45; } code { padding:2px 5px; border-radius:4px; background:#edf3ee; color:#29463b; font-size:.9em; }
+    .choice { margin-top:20px; padding:24px; border:1px solid #b7d8c1; border-radius:14px; background:#f7fcf8; } label { display:block; margin:12px 0; padding:12px; border:1px solid #dce4dd; border-radius:9px; background:#fff; cursor:pointer; } input { accent-color:#2f7548; } button { margin-top:10px; padding:11px 15px; border:0; border-radius:8px; background:#2f7548; color:#fff; font:600 13px inherit; cursor:pointer; } #status { margin-left:10px; color:#56876b; font-size:12px; }
+    @media (max-width:680px) { main { width:min(100% - 24px,980px); padding-top:28px; } .grid { grid-template-columns:1fr; } .flow { min-width:620px; } .flow-wrap { overflow-x:auto; } }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="eyebrow">Proposal · no code changes</div>
+    <h1>Make SMTP outages survivable.</h1>
+    <p class="lead">Recommended: use durable Kafka retry topics for temporary SMTP failures, then send exhausted or permanently invalid messages to a dead-letter topic. This protects the consumer from retrying one message forever and preserves every failed request for review or replay.</p>
+
+    <section class="card notice">
+      <h2>What happens today</h2>
+      <p>The Kafka worker catches every processing exception, seeks back to the same record, waits one second, and does not commit its offset. An offline SMTP server therefore retries forever and blocks that Kafka partition. There is no durable retry state, attempt limit, or dead-letter record.</p>
+    </section>
+
+    <section class="card">
+      <h2>Target message path</h2>
+      <div class="flow-wrap"><svg class="flow" viewBox="0 0 900 210" role="img" aria-label="Email delivery with retries and a dead-letter topic">
+        <title>Kafka retry and dead-letter flow</title>
+        <defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8z" fill="#56876b"/></marker></defs>
+        <rect id="main-topic" x="18" y="78" width="132" height="58" rx="10" fill="#e9f5ec" stroke="#78af89"/><text x="84" y="102" text-anchor="middle">email.topic</text><text class="small" x="84" y="121" text-anchor="middle">new request</text>
+        <path id="main-to-worker" d="M151 107 H237" stroke="#56876b" stroke-width="2" marker-end="url(#arrow)"/><rect id="worker" x="240" y="78" width="146" height="58" rx="10" fill="#fff" stroke="#a9bcb0"/><text x="313" y="102" text-anchor="middle">SMTP worker</text><text class="small" x="313" y="121" text-anchor="middle">send / classify</text>
+        <path id="worker-success" d="M387 95 H472" stroke="#3c8055" stroke-width="2" marker-end="url(#arrow)"/><text class="small" x="430" y="84" text-anchor="middle">success → commit</text><rect id="sent" x="475" y="65" width="120" height="58" rx="10" fill="#edf8f0" stroke="#78af89"/><text x="535" y="99" text-anchor="middle">sent</text>
+        <path id="worker-retry" d="M313 137 V176 H480" stroke="#d99a37" stroke-width="2" fill="none" marker-end="url(#arrow)"/><rect id="retry-topic" x="483" y="147" width="156" height="53" rx="10" fill="#fff8e9" stroke="#d99a37"/><text x="561" y="169" text-anchor="middle">email.retry</text><text class="small" x="561" y="187" text-anchor="middle">attempt + due time</text>
+        <path id="retry-to-worker" d="M640 173 H693 V107 H388" stroke="#d99a37" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+        <path id="worker-dlt" d="M387 120 H700" stroke="#a33a32" stroke-width="2" marker-end="url(#arrow)"/><rect id="dlt" x="704" y="78" width="168" height="58" rx="10" fill="#fff0ef" stroke="#c56a62"/><text x="788" y="102" text-anchor="middle">email.dlt</text><text class="small" x="788" y="121" text-anchor="middle">review / replay</text>
+      </svg></div>
+      <p class="muted">Kafka has no RabbitMQ-style broker TTL/DLX. The worker will own the retry schedule: it writes the failed record with retry metadata, commits the original offset, and only delivers retry records when their due time arrives.</p>
+    </section>
+
+    <section class="card">
+      <h2>Implementation plan</h2>
+      <div class="grid">
+        <article class="step"><div class="num">01 · Classify</div><strong>Separate retryable from permanent failures.</strong><ul><li>Retry SMTP connection, read, and write timeouts; connection refused; and transient 4xx SMTP responses.</li><li>Dead-letter malformed payloads, missing required email fields, invalid recipient addresses, and permanent SMTP/auth failures.</li></ul></article>
+        <article class="step"><div class="num">02 · Retry durably</div><strong>Move—not seek—the failed record.</strong><ul><li>Publish the original message to <code>email.retry</code> with attempt number, next-at time, original topic/partition/offset, and concise failure metadata.</li><li>Commit the source offset only after the retry publish succeeds, preventing duplicate loss.</li></ul></article>
+        <article class="step"><div class="num">03 · Bound the outage</div><strong>Use a short, predictable backoff policy.</strong><ul><li>Recommended initial schedule: 1 min → 5 min → 15 min → 1 hr → 4 hr.</li><li>After the fifth failed delivery, publish to <code>email.dlt</code> and commit the retry offset.</li></ul></article>
+        <article class="step"><div class="num">04 · Make failures operable</div><strong>DLT is a workflow, not a bin.</strong><ul><li>Log and count retry/DLT transitions without logging message bodies or credentials.</li><li>Add a small operator action later: inspect DLT metadata and replay selected messages after SMTP recovery.</li></ul></article>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Safety and scope</h2>
+      <ul><li>Preserve the existing Kafka key when republishing, so related messages maintain partition ordering.</li><li>Do not silently drop any record; each terminal failure must be in <code>email.dlt</code>.</li><li>Keep SMTP credentials and email HTML out of logs and DLT failure text.</li><li>Initial implementation covers Kafka only. RabbitMQ needs its own DLX/TTL policy later; its native dead-letter exchange makes that a separate, smaller change.</li></ul>
+    </section>
+
+    <section class="choice" data-lavish-question="smtp-resilience-plan">
+      <h2>Decision to lock before implementation</h2>
+      <p class="muted">Choose how long a message may wait for a recovering SMTP server.</p>
+      <form onsubmit="event.preventDefault(); const value=new FormData(this).get('policy'); if (!value) return; window.lavish.queuePrompt('Implement the SMTP resilience plan with the ' + value + ' retry policy.', {tag:'smtp-resilience', text:'Retry policy: '+value, element:this, data:{question:'smtp-resilience-plan', retryPolicy:value}}); document.getElementById('status').textContent='Choice queued for review.';">
+        <label><input type="radio" name="policy" value="recommended 1m, 5m, 15m, 1h, 4h then DLT" checked> Recommended — 1m, 5m, 15m, 1h, 4h; then DLT</label>
+        <label><input type="radio" name="policy" value="short 30s, 2m, 10m then DLT"> Fast fail — 30s, 2m, 10m; then DLT</label>
+        <label><input type="radio" name="policy" value="long 5m, 30m, 2h, 8h, 24h then DLT"> Long outage tolerance — 5m, 30m, 2h, 8h, 24h; then DLT</label>
+        <button type="submit">Queue this decision</button><span id="status" role="status" aria-live="polite"></span>
+      </form>
+    </section>
+  </main>
+</body>
+</html>
