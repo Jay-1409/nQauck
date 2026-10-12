@@ -17,7 +17,9 @@ import (
 
 type options struct {
 	endpoint    string
+	provider    string
 	rabbitAddr  string
+	kafkaAddr   string
 	smtpAddr    string
 	rate        int
 	duration    time.Duration
@@ -43,6 +45,7 @@ type rabbitSnapshot struct {
 
 type result struct {
 	Endpoint       string           `json:"endpoint"`
+	Provider       string           `json:"provider"`
 	TargetRate     int              `json:"target_requests_per_second"`
 	LoadDuration   string           `json:"load_duration"`
 	DrainDuration  string           `json:"drain_duration"`
@@ -100,7 +103,9 @@ type queueResponse struct {
 func main() {
 	var opt options
 	flag.StringVar(&opt.endpoint, "url", "http://localhost:17431/api/email/send", "Publisher email endpoint")
+	flag.StringVar(&opt.provider, "provider", "rabbitmq", "Queue provider to benchmark: rabbitmq or kafka")
 	flag.StringVar(&opt.rabbitAddr, "rabbit-address", "localhost:5672", "RabbitMQ AMQP host:port")
+	flag.StringVar(&opt.kafkaAddr, "kafka-address", "localhost:9092", "Kafka bootstrap host:port")
 	flag.StringVar(&opt.smtpAddr, "smtp-address", "localhost:1025", "SMTP sink host:port")
 	flag.IntVar(&opt.rate, "rate", 100, "Target request arrival rate per second")
 	flag.DurationVar(&opt.duration, "duration", 30*time.Second, "Time to send requests")
@@ -119,7 +124,7 @@ func main() {
 		fmt.Fprintln(os.Stderr, "configuration error:", err)
 		os.Exit(2)
 	}
-	if opt.rabbitURL != "" && opt.rabbitPass == "" {
+	if opt.provider == "rabbitmq" && opt.rabbitURL != "" && opt.rabbitPass == "" {
 		fmt.Fprintln(os.Stderr, "set -rabbit-password or PONGPIN_RABBITMQ_PASSWORD when RabbitMQ sampling is enabled")
 		os.Exit(2)
 	}
@@ -139,7 +144,7 @@ func main() {
 	var sampleErrors atomic.Int64
 	monitorDone := make(chan struct{})
 	monitorStop := make(chan struct{})
-	if opt.rabbitURL != "" {
+	if opt.provider == "rabbitmq" && opt.rabbitURL != "" {
 		go monitorRabbit(client, opt, &samples, &sampleErrors, monitorStop, monitorDone)
 	} else {
 		close(monitorDone)
@@ -158,7 +163,7 @@ func main() {
 		fmt.Printf("Load complete; sampling drain for %s\n", opt.drain)
 		time.Sleep(opt.drain)
 	}
-	if opt.rabbitURL != "" {
+	if opt.provider == "rabbitmq" && opt.rabbitURL != "" {
 		close(monitorStop)
 		<-monitorDone
 	}
@@ -166,7 +171,7 @@ func main() {
 
 	accepted := stats.accepted.Load()
 	output := result{
-		Endpoint: opt.endpoint, TargetRate: opt.rate, LoadDuration: loadElapsed.String(),
+		Endpoint: opt.endpoint, Provider: opt.provider, TargetRate: opt.rate, LoadDuration: loadElapsed.String(),
 		DrainDuration: opt.drain.String(), Scheduled: stats.scheduled.Load(), Accepted: accepted,
 		SendFailures: stats.sendFailures.Load(), RequestErrors: stats.requestErrors.Load(),
 		CapacityDrops: stats.drops.Load(), ActualRate: float64(accepted) / loadElapsed.Seconds(),
@@ -208,12 +213,22 @@ func validate(opt options) error {
 	if parsed.Scheme != "http" && parsed.Scheme != "https" {
 		return fmt.Errorf("url must use HTTP or HTTPS")
 	}
-	for name, address := range map[string]string{"rabbit-address": opt.rabbitAddr, "smtp-address": opt.smtpAddr} {
+	if opt.provider != "rabbitmq" && opt.provider != "kafka" {
+		return fmt.Errorf("provider must be rabbitmq or kafka")
+	}
+	brokerName, brokerAddress := "rabbit-address", opt.rabbitAddr
+	if opt.provider == "kafka" {
+		brokerName, brokerAddress = "kafka-address", opt.kafkaAddr
+	}
+	for name, address := range map[string]string{brokerName: brokerAddress, "smtp-address": opt.smtpAddr} {
 		if _, _, err := net.SplitHostPort(address); err != nil {
 			return fmt.Errorf("%s must be host:port", name)
 		}
 	}
 	if opt.rabbitURL != "" {
+		if opt.provider != "rabbitmq" {
+			return fmt.Errorf("rabbit-url is only available with provider rabbitmq")
+		}
 		parsed, err = url.ParseRequestURI(opt.rabbitURL)
 		if err != nil || parsed.Scheme == "" || parsed.Host == "" {
 			return fmt.Errorf("rabbit-url must be an absolute HTTP(S) URL")
@@ -250,9 +265,11 @@ func checkServices(client *http.Client, opt options) []string {
 	} else {
 		fmt.Println("  Publisher: available")
 	}
-	for _, service := range []struct{ name, address string }{
-		{"RabbitMQ (AMQP)", opt.rabbitAddr}, {"SMTP sink", opt.smtpAddr},
-	} {
+	broker := struct{ name, address string }{"RabbitMQ (AMQP)", opt.rabbitAddr}
+	if opt.provider == "kafka" {
+		broker = struct{ name, address string }{"Kafka", opt.kafkaAddr}
+	}
+	for _, service := range []struct{ name, address string }{broker, {"SMTP sink", opt.smtpAddr}} {
 		connection, err := net.DialTimeout("tcp", service.address, opt.timeout)
 		if err != nil {
 			missing = append(missing, fmt.Sprintf("%s (%s): %v", service.name, service.address, err))
