@@ -3,7 +3,7 @@ spring:
     host: 'http://localhost'
     port: 1010
     username: 'example@outlook.in'
-    password: 'random_password'
+    password: 'random_password_'
     properties:
       "[mail.smtp.auth]": true
       "[mail.smtp.starttls.enable]": true
