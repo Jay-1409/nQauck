@@ -14,6 +14,10 @@ This is a high-throughput notification sending system. The server exposed APIs t
 - You may setup priority delivery for messages, which allows important messages/emails to be delivered faster.
 - Dashboard supporting GUI based statistics & Configuration.
 
+## Screenshots
+<img width="1664" height="1704" alt="image" src="https://github.com/user-attachments/assets/3a45e3c3-1ee0-452a-85f1-877b0e7ed8bb" />
+
+
 ## Documentation
 
 - [Architecture and message flow](./docs/architecture.md)
