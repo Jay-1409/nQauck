@@ -9,22 +9,21 @@ Pongpin has two Spring Boot applications. The publisher accepts email requests a
 ```mermaid
 flowchart LR
     Client -->|POST /api/email/send| Publisher
-    Publisher -->|pongpin.exchange / email.send| RabbitMQ
-    RabbitMQ -->|email.queue| Worker
+    Publisher -->|pongpin.exchange / email.send| Queue
+    Queue -->|email.queue| Worker
     Worker -->|SMTP| MailServer
 ```
 
-## Responsibilities
+## Scaling 
 
-- **Publisher:** Hosts the dashboard and email API on port `17431`. It declares a durable direct exchange, durable email queue, and routing-key binding. The current route uses `email.send`.
-- **Dashboard configuration service:** Validates submitted queue and SMTP settings, preserves a saved SMTP password when the field is left blank, and generates worker YAML.
-- **Dashboard data store:** Encrypts saved settings with AES-GCM. The data and local key are stored under `~/.pongpin/` by default.
-- **Dashboard account store:** Stores the dashboard login password as a BCrypt hash.
-- **Worker:** Selects an adapter from `app.queue.provider`. The RabbitMQ adapter listens to the configured email queue and passes each event to the email service.
-- **Email service:** Builds an HTML email from the event’s recipient, subject, and body, then sends it through the configured SMTP server.
+Run multiple worker processes with the same `Applications.yml` configuration and queue name.
 
-## Scaling and current limits
+### RMQ 
+You may spawn multiple workers and RMQ, will concurrently pass on messages to the workers. This turned out ot perform exceptionally well in testing. 
 
-Run multiple worker processes with the same RabbitMQ configuration and queue name. RabbitMQ distributes messages among consumers of that queue. Delivery can be retried if processing fails; dead-letter handling and bounded retry policy are not configured yet.
+### KAFKA
+Kafka allows only one consumer per topic per partition. thus one needs to increase the number of partition to increase the concurrently. Kafka is specifically introduced for use cases which require 3rd party integration to this infra which involved interacting with the queue.
 
-RabbitMQ is the only implemented worker adapter. The dashboard can generate Kafka or SQS settings, but selecting either provider currently fails because no matching worker adapter exists. Per-event priority routing is planned, not implemented.
+
+## Limitations
+Currently we do not suport a Dead letter queue, thus a failed consumption will break the worker, thus one should take this in consideration while integrating. 
