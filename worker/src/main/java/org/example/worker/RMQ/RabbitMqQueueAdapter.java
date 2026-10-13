@@ -29,6 +29,7 @@ public class RabbitMqQueueAdapter implements QueueAdapter {
             "${app.rabbitmq.queues.priority.low}"
     })
     public void receive(EmailRequest event) {
+        // shortcut: SMTP delivery errors requeue indefinitely, add exponential backoff and a dead-letter exchange before production.
         eventConsumer.consume(event);
     }
 }

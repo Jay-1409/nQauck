@@ -6,9 +6,11 @@ The publisher listens on port `17431` by default.
 
 `POST /api/email/send`
 
-This endpoint currently does not require dashboard authentication.
+Requires an active **AccessCoin** passed via either the `X-Access-Coin` header or an `Authorization: Bearer <token>` header. AccessCoins can be generated and managed directly in the dashboard under the **Access Coins** view.
 
-Request content type: `application/json`
+Request headers:
+- `Content-Type`: `application/json`
+- `X-Access-Coin`: `<token>` *(or `Authorization: Bearer <token>`)*
 
 | Field | Type | Required | Description |
 |---|---|---:|---|
@@ -22,13 +24,16 @@ Example:
 ```sh
 curl -i -X POST http://localhost:17431/api/email/send \
   -H 'Content-Type: application/json' \
+  -H 'X-Access-Coin: ac_1234567890abcdef' \
   -d '{"to":"person@example.com","subject":"Welcome","htmlTemplate":"<h1>Hello</h1>","priority":"HIGH"}'
 ```
 
 | Response | Meaning |
 |---|---|
 | `202 Accepted` | The publisher accepted the request for queueing. This does not confirm SMTP delivery. |
+| `401 Unauthorized` | Missing, invalid, or revoked AccessCoin. |
 | `400 Bad Request` | The request body could not be parsed. |
+| `503 Service Unavailable` | The message queue broker is offline or unreachable. |
 | `5xx` | The publisher could not process the request. |
 
 ## Dashboard and setup endpoints
@@ -42,6 +47,9 @@ curl -i -X POST http://localhost:17431/api/email/send \
 | `GET` | `/csrf` | Public | Returns the CSRF token and header name for browser form submissions. |
 | `GET` | `/config.yml` | Login required | Returns saved non-secret configuration as JSON, or `204 No Content` if none is saved. SMTP password is never returned. |
 | `POST` | `/config.yml` | Login required, CSRF token required | Saves settings and returns a downloadable `application.yml`. Invalid SMTP settings return `400`. |
+| `GET` | `/api/access-coins` | Login required | Returns the list of all created AccessCoins with their tokens and active/revoked status. |
+| `POST` | `/api/access-coins` | Login required, CSRF token required | Generates a new AccessCoin token with the provided `name`. |
+| `POST` | `/api/access-coins/{id}/revoke` | Login required, CSRF token required | Revokes the specified AccessCoin, immediately denying future requests. |
 | `GET` | `/login` | Public | Spring Security’s login page. |
 | `POST` | `/login` | Public, CSRF token required | Form fields: `username` and `password`. Success redirects to `/index.html`; failed login redirects back to `/login?error`. |
 | `GET` | `/index.html` | Login required | Dashboard configuration UI. |

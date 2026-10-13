@@ -32,6 +32,7 @@ type options struct {
 	queue       string
 	rabbitUser  string
 	rabbitPass  string
+	accessCoin  string
 }
 
 type rabbitSnapshot struct {
@@ -118,6 +119,7 @@ func main() {
 	flag.StringVar(&opt.queue, "rabbit-queue", "email.queue", "RabbitMQ queue name to sample")
 	flag.StringVar(&opt.rabbitUser, "rabbit-user", "guest", "RabbitMQ Management username")
 	flag.StringVar(&opt.rabbitPass, "rabbit-password", os.Getenv("PONGPIN_RABBITMQ_PASSWORD"), "RabbitMQ Management password (or set PONGPIN_RABBITMQ_PASSWORD)")
+	flag.StringVar(&opt.accessCoin, "access-coin", os.Getenv("PONGPIN_ACCESS_COIN"), "Optional AccessCoin token for API authentication (or set PONGPIN_ACCESS_COIN)")
 	flag.Parse()
 
 	if err := validate(opt); err != nil {
@@ -138,7 +140,7 @@ func main() {
 		}
 		os.Exit(1)
 	}
-	target := httpAdapter{client: client, endpoint: opt.endpoint}
+	target := httpAdapter{client: client, endpoint: opt.endpoint, accessCoin: opt.accessCoin}
 	stats := &counters{statuses: make(map[int]int64)}
 	var samples []rabbitSnapshot
 	var sampleErrors atomic.Int64

@@ -34,16 +34,16 @@ public class DashboardDataStore {
         this.objectMapper = objectMapper;
     }
 
+    public Path directory() {
+        return directory;
+    }
+
     public synchronized Optional<DashboardConfiguration> loadConfiguration() {
         Path file = directory.resolve("dashboard-config.enc");
         if (!Files.exists(file)) return Optional.empty();
         try {
-            byte[] encrypted = Files.readAllBytes(file);
-            byte[] nonce = java.util.Arrays.copyOfRange(encrypted, 0, NONCE_SIZE);
-            byte[] ciphertext = java.util.Arrays.copyOfRange(encrypted, NONCE_SIZE, encrypted.length);
-            Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
-            cipher.init(Cipher.DECRYPT_MODE, encryptionKey(), new GCMParameterSpec(TAG_SIZE, nonce));
-            return Optional.of(objectMapper.readValue(cipher.doFinal(ciphertext), DashboardConfiguration.class));
+            byte[] decrypted = decrypt(Files.readAllBytes(file));
+            return Optional.of(objectMapper.readValue(decrypted, DashboardConfiguration.class));
         } catch (Exception exception) {
             throw new IllegalStateException("Could not read encrypted dashboard configuration", exception);
         }
@@ -54,18 +54,31 @@ public class DashboardDataStore {
             Files.createDirectories(directory);
             setPermissions(directory, EnumSet.of(PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE,
                     PosixFilePermission.OWNER_EXECUTE));
-            byte[] nonce = new byte[NONCE_SIZE];
-            new SecureRandom().nextBytes(nonce);
-            Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
-            cipher.init(Cipher.ENCRYPT_MODE, encryptionKey(), new GCMParameterSpec(TAG_SIZE, nonce));
-            byte[] ciphertext = cipher.doFinal(objectMapper.writeValueAsBytes(configuration));
-            byte[] encrypted = new byte[nonce.length + ciphertext.length];
-            System.arraycopy(nonce, 0, encrypted, 0, nonce.length);
-            System.arraycopy(ciphertext, 0, encrypted, nonce.length, ciphertext.length);
+            byte[] encrypted = encrypt(objectMapper.writeValueAsBytes(configuration));
             writePrivateFile(directory.resolve("dashboard-config.enc"), encrypted);
         } catch (Exception exception) {
             throw new IllegalStateException("Could not save encrypted dashboard configuration", exception);
         }
+    }
+
+    public synchronized byte[] encrypt(byte[] data) throws Exception {
+        byte[] nonce = new byte[NONCE_SIZE];
+        new SecureRandom().nextBytes(nonce);
+        Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
+        cipher.init(Cipher.ENCRYPT_MODE, encryptionKey(), new GCMParameterSpec(TAG_SIZE, nonce));
+        byte[] ciphertext = cipher.doFinal(data);
+        byte[] encrypted = new byte[nonce.length + ciphertext.length];
+        System.arraycopy(nonce, 0, encrypted, 0, nonce.length);
+        System.arraycopy(ciphertext, 0, encrypted, nonce.length, ciphertext.length);
+        return encrypted;
+    }
+
+    public synchronized byte[] decrypt(byte[] encrypted) throws Exception {
+        byte[] nonce = java.util.Arrays.copyOfRange(encrypted, 0, NONCE_SIZE);
+        byte[] ciphertext = java.util.Arrays.copyOfRange(encrypted, NONCE_SIZE, encrypted.length);
+        Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
+        cipher.init(Cipher.DECRYPT_MODE, encryptionKey(), new GCMParameterSpec(TAG_SIZE, nonce));
+        return cipher.doFinal(ciphertext);
     }
 
     private SecretKey encryptionKey() throws Exception {
@@ -85,7 +98,7 @@ public class DashboardDataStore {
         return key;
     }
 
-    private void writePrivateFile(Path destination, byte[] data) throws Exception {
+    public void writePrivateFile(Path destination, byte[] data) throws Exception {
         Path temporary = Files.createTempFile(directory, ".pongpin-", ".tmp");
         try {
             setPermissions(temporary, EnumSet.of(PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE));
@@ -105,7 +118,7 @@ public class DashboardDataStore {
         try {
             Files.setPosixFilePermissions(path, permissions);
         } catch (UnsupportedOperationException ignored) {
-            // ponytail: non-POSIX filesystems rely on the current user's default ACL.
+            // shortcut: non-POSIX filesystems use default ACL, implement explicit Windows ACLs if cross-platform deployment requires it.
         }
     }
 

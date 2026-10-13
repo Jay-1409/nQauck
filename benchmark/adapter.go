@@ -28,8 +28,9 @@ type adapter interface {
 }
 
 type httpAdapter struct {
-	client   *http.Client
-	endpoint string
+	client     *http.Client
+	endpoint   string
+	accessCoin string
 }
 
 func (a httpAdapter) Send(payload requestPayload) sendResult {
@@ -42,6 +43,9 @@ func (a httpAdapter) Send(payload requestPayload) sendResult {
 		return sendResult{err: err}
 	}
 	request.Header.Set("Content-Type", "application/json")
+	if a.accessCoin != "" {
+		request.Header.Set("X-Access-Coin", a.accessCoin)
+	}
 	started := time.Now()
 	response, err := a.client.Do(request)
 	latency := time.Since(started)

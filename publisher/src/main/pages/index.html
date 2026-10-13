@@ -76,6 +76,8 @@
     .stats-message.error { color: #a33a32; }
     .stats-sampled { margin: 0; color: #89948d; font-size: 11px; }
     .stats-sampled.error { color: #a33a32; }
+    .badge-active { display: inline-block; padding: 2px 8px; border-radius: 6px; background: #e9f5ec; color: #2f7548; font-size: 11px; font-weight: 700; }
+    .badge-revoked { display: inline-block; padding: 2px 8px; border-radius: 6px; background: #fff0ef; color: #a33a32; font-size: 11px; font-weight: 700; }
     #configuration-nav[hidden] { display: none; }
     @media (max-width: 960px) {
       .stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -127,6 +129,7 @@
         </div>
         </div>
         <button class="tree-parent" type="button" data-view="statistics">Statistics</button>
+        <button class="tree-parent" type="button" data-view="access-coins">Access Coins</button>
       </nav>
     </aside>
     <main>
@@ -286,6 +289,50 @@
         </div>
         <p class="stats-sampled" id="publisher-sampled" role="status" aria-live="polite"></p>
       </section>
+      <section id="access-coins-view" hidden>
+        <p class="eyebrow">Security</p>
+        <h1>Access Coins</h1>
+        <p class="intro">Generate and manage tokens required by senders to authenticate calls to <code>POST /api/email/send</code>.</p>
+        <section class="card" style="margin-bottom: 24px;">
+          <div class="card-heading">
+            <span class="icon" aria-hidden="true">🪙</span>
+            <div>
+              <h2>Create a new AccessCoin</h2>
+              <p>Generate a unique authentication token for an application or sender.</p>
+            </div>
+          </div>
+          <form id="create-coin-form">
+            <div class="field">
+              <label for="coin-name">Coin name / label</label>
+              <input id="coin-name" type="text" placeholder="e.g. Billing Service, Production API" required>
+            </div>
+            <div class="actions">
+              <span></span>
+              <button type="submit">Generate Coin</button>
+            </div>
+          </form>
+          <div id="coin-created-banner" style="display:none; margin-top:20px; padding:16px; border:1px solid #78af89; border-radius:10px; background:#e9f5ec;">
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+              <strong style="color:#205030; font-size:13px;">Coin generated successfully!</strong>
+              <button id="copy-coin-btn" type="button" class="secondary" style="padding:6px 12px; font-size:12px;">Copy Token</button>
+            </div>
+            <p style="margin:0 0 6px; font-size:12px; color:#365340;">Header: <code>X-Access-Coin: <span id="created-coin-token"></span></code></p>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-heading">
+            <span class="icon" aria-hidden="true">🔑</span>
+            <div>
+              <h2>Active &amp; Revoked Coins</h2>
+              <p>Review existing coins, copy active tokens, or revoke access.</p>
+            </div>
+          </div>
+          <div id="coins-list" style="display:grid; gap:12px;">
+            <p style="color:#77837b; font-size:13px;">Loading coins…</p>
+          </div>
+        </section>
+      </section>
     </main>
   </div>
   <script>
@@ -322,9 +369,13 @@
     }
     function openView(name) {
       const showStatistics = name === 'statistics';
-      configurationView.hidden = showStatistics;
-      configurationNav.hidden = showStatistics;
+      const showAccessCoins = name === 'access-coins';
+      const showConfiguration = !showStatistics && !showAccessCoins;
+      configurationView.hidden = !showConfiguration;
+      configurationNav.hidden = !showConfiguration;
       statisticsView.hidden = !showStatistics;
+      const accessCoinsView = document.getElementById('access-coins-view');
+      if (accessCoinsView) accessCoinsView.hidden = !showAccessCoins;
       viewItems.forEach(item => item.classList.toggle('active', item.dataset.view === name));
       if (showStatistics) {
         refreshStatistics();
@@ -332,6 +383,9 @@
       } else if (statsTimer) {
         clearInterval(statsTimer);
         statsTimer = null;
+      }
+      if (showAccessCoins) {
+        loadCoins();
       }
     }
     function refreshStatistics() {
@@ -542,6 +596,100 @@
         alert(error.message);
       }
     });
+
+    async function loadCoins() {
+      const listEl = document.getElementById('coins-list');
+      try {
+        const response = await fetch('/api/access-coins');
+        if (!response.ok) throw new Error('Could not load access coins');
+        const coins = await response.json();
+        if (coins.length === 0) {
+          listEl.innerHTML = '<p style="color:#77837b; font-size:13px; margin:0;">No coins generated yet.</p>';
+          return;
+        }
+        listEl.innerHTML = coins.map(coin => `
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:14px; padding:14px; border:1px solid #e3e9e4; border-radius:10px; background:#fff;">
+            <div>
+              <div style="display:flex; align-items:center; gap:8px;">
+                <strong>${escapeHtml(coin.name)}</strong>
+                <span class="${coin.revoked ? 'badge-revoked' : 'badge-active'}">${coin.revoked ? 'Revoked' : 'Active'}</span>
+              </div>
+              <div style="margin-top:6px; font-size:12px; color:#55635a; display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                <code>${escapeHtml(coin.token)}</code>
+                <span style="color:#89948d; font-size:11px;">Created ${new Date(coin.createdAt).toLocaleDateString()}</span>
+              </div>
+            </div>
+            <div style="display:flex; gap:8px; flex-shrink:0;">
+              ${!coin.revoked ? `<button type="button" class="secondary" style="padding:6px 12px; font-size:12px;" onclick="copyToken('${escapeHtml(coin.token)}')">Copy</button>
+              <button type="button" style="padding:6px 12px; font-size:12px; background:#a33a32;" onclick="revokeCoin('${coin.id}')">Revoke</button>` : ''}
+            </div>
+          </div>
+        `).join('');
+      } catch (err) {
+        listEl.innerHTML = `<p style="color:#a33a32; font-size:13px; margin:0;">${escapeHtml(err.message)}</p>`;
+      }
+    }
+
+    const createCoinForm = document.getElementById('create-coin-form');
+    if (createCoinForm) {
+      createCoinForm.addEventListener('submit', async event => {
+        event.preventDefault();
+        const nameInput = document.getElementById('coin-name');
+        const name = nameInput.value.trim();
+        if (!name) return;
+        try {
+          const csrf = await fetch('/csrf').then(res => res.json());
+          const response = await fetch('/api/access-coins', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', [csrf.headerName]: csrf.token },
+            body: JSON.stringify({ name })
+          });
+          if (!response.ok) throw new Error('Could not create coin');
+          const coin = await response.json();
+          nameInput.value = '';
+          const banner = document.getElementById('coin-created-banner');
+          document.getElementById('created-coin-token').textContent = coin.token;
+          document.getElementById('copy-coin-btn').onclick = () => copyToken(coin.token);
+          banner.style.display = 'block';
+          loadCoins();
+        } catch (err) {
+          alert(err.message);
+        }
+      });
+    }
+
+    async function revokeCoin(id) {
+      if (!confirm('Are you sure you want to revoke this AccessCoin? Senders using it will lose access immediately.')) return;
+      try {
+        const csrf = await fetch('/csrf').then(res => res.json());
+        const response = await fetch(`/api/access-coins/${id}/revoke`, {
+          method: 'POST',
+          headers: { [csrf.headerName]: csrf.token }
+        });
+        if (!response.ok) throw new Error('Could not revoke coin');
+        loadCoins();
+      } catch (err) {
+        alert(err.message);
+      }
+    }
+
+    function copyToken(token) {
+      navigator.clipboard.writeText(token).then(() => {
+        alert('AccessCoin copied to clipboard!');
+      }).catch(() => {
+        prompt('Copy your AccessCoin:', token);
+      });
+    }
+
+    function escapeHtml(str) {
+      return (str || '').replace(/[&<>'"]/g, tag => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        "'": '&#39;',
+        '"': '&quot;'
+      }[tag] || tag));
+    }
   </script>
 </body>
 </html>

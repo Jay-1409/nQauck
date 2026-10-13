@@ -21,10 +21,11 @@ public class SecurityConfig {
                         .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
                         .requestMatchers("/api/email/send").permitAll()
                         .requestMatchers("/api/statistics/**").authenticated()
+                        .requestMatchers("/api/access-coins/**").authenticated()
                         .requestMatchers("/api/**").permitAll()
                         .requestMatchers("/", "/setup", "/setup.html", "/csrf").permitAll()
                         .anyRequest().authenticated())
-                .csrf(csrf -> csrf.ignoringRequestMatchers("/api/**"))
+                .csrf(csrf -> csrf.ignoringRequestMatchers("/api/email/send"))
                 .formLogin(form -> form.defaultSuccessUrl("/index.html", true))
                 .build();
     }

@@ -80,7 +80,7 @@ public class DashboardAccountStore {
         try {
             Files.setPosixFilePermissions(path, permissions);
         } catch (UnsupportedOperationException ignored) {
-            // ponytail: non-POSIX filesystems rely on the current user's default ACL.
+            // shortcut: non-POSIX filesystems use default ACL, implement explicit Windows ACLs if cross-platform deployment requires it.
         }
     }
 

@@ -88,7 +88,7 @@ public class PriorityRabbitMqQueueAdapter implements QueueAdapter {
     }
 
     private boolean receive(String queue) {
-        // ponytail: Basic.Get polling preserves the exact sequence; switch to coordinated listeners if polling limits throughput.
+        // shortcut: Basic.Get polling preserves exact sequence, switch to coordinated push listeners if polling throughput saturates.
         return rabbitTemplate.execute(channel -> {
             GetResponse response = channel.basicGet(queue, false);
             if (response == null) return false;
