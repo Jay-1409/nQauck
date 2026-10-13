@@ -21,27 +21,39 @@ services:
 
   postgresql:
     image: postgres:14
+    hostname: postgresql
     environment:
       POSTGRES_DB: conduktor
       POSTGRES_USER: conduktor
       POSTGRES_PASSWORD: change_me
+      POSTGRES_HOST_AUTH_METHOD: scram-sha-256
     volumes:
       - conduktor-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U conduktor -d conduktor"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   conduktor-console:
     image: conduktor/conduktor-console:1.47.2
+    hostname: conduktor-console
     depends_on:
-      - postgresql
+      postgresql:
+        condition: service_healthy
+      kafka:
+        condition: service_started
     ports:
-      - "127.0.0.1:8080:8080"
+      - "8080:8080"
     environment:
       CDK_DATABASE_URL: postgresql://conduktor:change_me@postgresql:5432/conduktor
       CDK_ORGANIZATION_NAME: local
       CDK_ADMIN_EMAIL: admin@localhost
-      CDK_ADMIN_PASSWORD: change_me
+      CDK_ADMIN_PASSWORD: Conduktor123!
       CDK_CLUSTERS_0_ID: local-kafka
       CDK_CLUSTERS_0_NAME: local-kafka
       CDK_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+      CDK_CLUSTERS_0_COLOR: "#56876b"
     volumes:
       - conduktor-data:/var/conduktor
 
