@@ -1,0 +1,37 @@
+spring:
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
+  mail:
+    host: 'http://localhost'
+    port: 1010
+    username: 'example@outlook.in'
+    password: 'Random_password'
+    properties:
+      "[mail.smtp.auth]": true
+      "[mail.smtp.starttls.enable]": true
+      "[mail.smtp.connectiontimeout]": 5000
+      "[mail.smtp.timeout]": 3000
+      "[mail.smtp.writetimeout]": 5000
+app:
+  queue:
+    provider: RABBITMQ
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    topic: ${KAFKA_TOPIC:email.topic}
+    group-id: ${KAFKA_GROUP_ID:pongpin-workers}
+  rabbitmq:
+    queues:
+      email:
+        name: email.queue
+      priority:
+        high: email.high.queue
+        medium: email.medium.queue
+        low: email.low.queue
+    priority-scheduling:
+      enabled: false
+      sequence: [0, 0, 0, 0, 1, 1, 2]
+  email:
+    from: 'jay_shah@outlook.in'

@@ -1,0 +1,20 @@
+spring:
+  mail:
+    host: 'http://localhost'
+    port: 1010
+    username: 'example@outlook.in'
+    password: 'random_password_'
+    properties:
+      "[mail.smtp.auth]": true
+      "[mail.smtp.starttls.enable]": true
+      "[mail.smtp.connectiontimeout]": 5000
+      "[mail.smtp.timeout]": 3000
+      "[mail.smtp.writetimeout]": 5000
+app:
+  queue:
+    provider: KAFKA
+  kafka:
+    bootstrap-servers: '${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}'
+    topic: ${KAFKA_TOPIC:email.topic}
+  email:
+    from: 'jay_shah@outlook.in'
